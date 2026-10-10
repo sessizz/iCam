@@ -46,6 +46,10 @@ IOS = {
     "Camera unavailable in Split View": "Bölünmüş Görünüm'de kamera kullanılamıyor",
     "iPhone is too hot": "iPhone çok ısındı",
     "Camera interrupted": "Kamera kesintiye uğradı",
+    "Incompatible iCam version. Please update both apps.":
+        "Uyumsuz iCam sürümü. Lütfen her iki uygulamayı da güncelleyin.",
+    "another Mac": "başka bir Mac",
+    "iPhone is in use by %@.": "iPhone şu anda %@ tarafından kullanılıyor.",
     "Camera access is off. Allow it in iPhone Settings › iCam.":
         "Kamera erişimi kapalı. iPhone Ayarlar › iCam bölümünden izin verin.",
 }
@@ -76,6 +80,8 @@ MAC = {
     "Connecting": "Bağlanıyor",
     "Searching": "Aranıyor",
     "Retry": "Yeniden Dene",
+    "Allow camera access for iCam so it can feed the virtual camera.":
+        "Sanal kameraya görüntü aktarabilmesi için iCam'e kamera erişimi verin.",
     "Installing camera extension…": "Kamera uzantısı yükleniyor…",
     "Allow the iCam camera extension in System Settings.":
         "Sistem Ayarları'nda iCam kamera uzantısına izin verin.",

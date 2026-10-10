@@ -145,11 +145,17 @@ tools/                    Xcode projesi, ikon ve yerelleştirme üreteçleri
 `iCam.xcodeproj` depoya dahildir. Kaynak dosya ekleyip çıkarırsanız
 `python3 tools/gen_xcodeproj.py` ile yeniden üretin.
 
-### Protokol testleri
+### Testler
 
 ```bash
+# Kablo protokolü (çerçeveleme, parçalı okuma, mesajlar) — her platformda
 swiftc -parse-as-library Shared/ICamProtocol.swift Shared/MessageFraming.swift \
   Tests/ProtocolTests.swift -o /tmp/protocol-tests && /tmp/protocol-tests
+
+# Uçtan uca video zinciri (macOS): iPhone kodlayıcısı → kablo → Mac çözücüsü → 1080p uydurma
+swiftc -parse-as-library Shared/*.swift macOS/Shared/*.swift iOS/Sources/VideoEncoder.swift \
+  macOS/App/Sources/VideoDecoder.swift macOS/App/Sources/VideoPipeline.swift \
+  Tests/PipelineTests.swift -o /tmp/pipeline-tests && /tmp/pipeline-tests
 ```
 
-Her push'ta GitHub Actions hem iPhone hem Mac hedeflerini derler ve protokol testlerini çalıştırır.
+Her push'ta GitHub Actions iPhone ve Mac hedeflerini derler ve bu iki test paketini çalıştırır.

@@ -111,6 +111,16 @@
         }
       }
     },
+    "Incompatible iCam version. Please update both apps.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uyumsuz iCam sürümü. Lütfen her iki uygulamayı da güncelleyin."
+          }
+        }
+      }
+    },
     "Keep iCam open. The screen dims automatically while streaming.": {
       "localizations": {
         "tr": {
@@ -301,12 +311,32 @@
         }
       }
     },
+    "another Mac": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "başka bir Mac"
+          }
+        }
+      }
+    },
     "iCam is in the background": {
       "localizations": {
         "tr": {
           "stringUnit": {
             "state": "translated",
             "value": "iCam arka planda"
+          }
+        }
+      }
+    },
+    "iPhone is in use by %@.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone şu anda %@ tarafından kullanılıyor."
           }
         }
       }

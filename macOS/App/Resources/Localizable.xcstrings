@@ -11,6 +11,16 @@
         }
       }
     },
+    "Allow camera access for iCam so it can feed the virtual camera.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sanal kameraya görüntü aktarabilmesi için iCam'e kamera erişimi verin."
+          }
+        }
+      }
+    },
     "Allow the camera extension": {
       "localizations": {
         "tr": {

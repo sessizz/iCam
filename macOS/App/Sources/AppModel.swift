@@ -104,12 +104,21 @@ final class AppModel {
 
     /// Called whenever the extension status changes to active.
     func extensionBecameActive() {
+        cameraAccess = AVCaptureDevice.authorizationStatus(for: .video)
         sink.refresh()
     }
 
     // MARK: Demand
 
     func setPreviewVisible(_ visible: Bool) {
+        if visible {
+            // Pick up permission changes made in System Settings meanwhile.
+            let access = AVCaptureDevice.authorizationStatus(for: .video)
+            if access != cameraAccess {
+                cameraAccess = access
+                sink.refresh()
+            }
+        }
         previewVisible = visible
         preview.isActive = visible
         updateDemand()

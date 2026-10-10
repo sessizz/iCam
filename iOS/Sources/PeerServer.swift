@@ -247,14 +247,15 @@ final class PeerServer {
         }
 
         guard hello.protocolVersion == ICam.protocolVersion else {
-            reply(accepted: false, reason: "Incompatible iCam version. Please update both apps.")
+            reply(accepted: false, reason: String(localized: "Incompatible iCam version. Please update both apps."))
             peer.close(after: 0.5)
             return
         }
 
         if let current = active, current !== peer {
             if current.hostID != hello.hostID && current.isAlive {
-                reply(accepted: false, reason: "iPhone is in use by \(current.hostName ?? "another Mac").")
+                let other = current.hostName ?? String(localized: "another Mac")
+                reply(accepted: false, reason: String(localized: "iPhone is in use by \(other)."))
                 peer.close(after: 0.5)
                 return
             }

@@ -167,7 +167,16 @@ private struct ExtensionBanner: View {
     var body: some View {
         switch model.extensionManager.status {
         case .active:
-            if case .failed(let reason) = model.sinkState {
+            if model.cameraAccess == .denied || model.cameraAccess == .restricted {
+                banner(icon: "video.slash.fill", color: .orange,
+                       text: Text("Allow camera access for iCam so it can feed the virtual camera.")) {
+                    Button("Open Settings") {
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                }
+            } else if case .failed(let reason) = model.sinkState {
                 banner(icon: "exclamationmark.triangle.fill", color: .orange, text: Text(verbatim: reason)) {
                     Button("Retry") { model.extensionBecameActive() }
                 }

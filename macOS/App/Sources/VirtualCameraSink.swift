@@ -61,6 +61,7 @@ final class VirtualCameraSink: @unchecked Sendable {
     /// its properties for diagnostics even when the sink can't be started.
     private var knownDeviceID: CMIOObjectID = 0
     private var nextConnectTime: CFAbsoluteTime = 0
+    private var consecutiveFailures = 0
     private var sinkStreamID: CMIOStreamID = 0
     private var bufferQueue: CMSimpleQueue?
     private var formatDescription: CMVideoFormatDescription?
@@ -209,6 +210,7 @@ final class VirtualCameraSink: @unchecked Sendable {
                 formatDescription = nil
                 lastMessage = nil
                 diagnostics.lastAttempt = results + ["\(stream.summary): started"]
+                consecutiveFailures = 0
                 log.notice("Connected to virtual camera sink \(stream.summary, privacy: .public)")
                 update(state: .ready)
                 installDemandListener()
@@ -230,7 +232,8 @@ final class VirtualCameraSink: @unchecked Sendable {
         if diagnostics.firstFailure == nil {
             diagnostics.firstFailure = results.joined(separator: "; ")
         }
-        let delay = min(30, 2 * pow(2, Double(min(diagnostics.failedAttempts - 1, 4))))
+        consecutiveFailures += 1
+        let delay = min(30, 2 * pow(2, Double(min(consecutiveFailures - 1, 4))))
         nextConnectTime = CFAbsoluteTimeGetCurrent() + delay
         update(state: .failed("Cannot start the virtual camera input (\(lastStatus))"))
     }

@@ -131,11 +131,26 @@ open /Applications/iCam.app
 echo "==> Installed /Applications/iCam.app (build $APP_BUILD, camera extension build $EXT_BUILD)"
 echo "    First run: approve the camera extension in System Settings when asked."
 echo "    Video apps that were already open must be restarted to pick up a new extension."
-sleep 5
-EXT_LINES="$(systemextensionsctl list 2>/dev/null | grep -F "$EXTENSION_ID" || true)"
-[ -n "$EXT_LINES" ] && echo "$EXT_LINES"
-if printf '%s' "$EXT_LINES" | grep -q "terminated"; then
-  echo "    An older copy of the camera extension is still loaded. Quit every app that"
-  echo "    uses the camera (OBS, Zoom, FaceTime, browsers in a call...), then reopen iCam."
-  echo "    If iCam still can't find its camera, restart the Mac."
+# Check, from a fresh process, that macOS offers the camera to newly started
+# apps. (Old copies listed as "terminated waiting to uninstall on reboot" are
+# normal after an update and harmless by themselves.)
+VISIBLE=""
+for _ in 1 2 3 4 5 6; do
+  sleep 3
+  if /Applications/iCam.app/Contents/MacOS/iCam --probe-camera; then
+    VISIBLE=1
+    break
+  fi
+done
+systemextensionsctl list 2>/dev/null | grep -F "$EXTENSION_ID" || true
+if [ -n "$VISIBLE" ]; then
+  echo "==> The iCam camera is available to apps."
+elif systemextensionsctl list 2>/dev/null | grep -F "$EXTENSION_ID" | grep -q "waiting for user"; then
+  echo "==> Approve the iCam camera extension in System Settings (General > Login Items & Extensions)."
+else
+  echo "warning: macOS doesn't offer the iCam camera to apps yet." >&2
+  echo "    If the camera extension was just updated while an app used the camera, macOS" >&2
+  echo "    may not have started the new copy. Quit apps that use the camera (OBS, Zoom," >&2
+  echo "    FaceTime...), then turn iCam off and on under Camera Extensions in System" >&2
+  echo "    Settings, or log out and back in, or restart the Mac." >&2
 fi

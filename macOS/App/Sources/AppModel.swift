@@ -82,7 +82,13 @@ final class AppModel {
             MainActor.assumeIsolated { self?.stats = stats }
         }
         sink.onStateChange = { [weak self] state in
-            MainActor.assumeIsolated { self?.sinkState = state }
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.sinkState = state
+                // The camera works again: a later disappearance gets a fresh
+                // relaunch budget.
+                if state == .ready { self.defaults.removeObject(forKey: Self.relaunchHistoryKey) }
+            }
         }
         sink.onDiagnostics = { [weak self] diagnostics in
             MainActor.assumeIsolated { self?.sinkDiagnostics = diagnostics }
@@ -198,7 +204,8 @@ final class AppModel {
     // MARK: Self relaunch
 
     private static let relaunchHistoryKey = "relaunchesForMissingCamera"
-    /// Upper bound on automatic relaunches within ten minutes.
+    /// Automatic relaunches allowed until the camera connects again (or an
+    /// hour passes), so a camera that stays missing can't cause a loop.
     private static let maxRelaunches = 3
 
     /// The camera extension that serves apps reports a different build than
@@ -211,12 +218,13 @@ final class AppModel {
         return status[status.index(status.startIndex, offsetBy: 6)..<end] != bundled
     }
 
-    /// Relaunches done in the last ten minutes (they span app instances).
+    /// Automatic relaunches since the camera last connected (they span app
+    /// instances).
     var recentRelaunches: Int { recentRelaunchTimes().count }
 
     private func recentRelaunchTimes() -> [Double] {
         let now = Date().timeIntervalSince1970
-        return (defaults.array(forKey: Self.relaunchHistoryKey) as? [Double] ?? []).filter { now - $0 < 600 }
+        return (defaults.array(forKey: Self.relaunchHistoryKey) as? [Double] ?? []).filter { now - $0 < 3600 }
     }
 
     /// The extension is active but its camera isn't visible to this process.
@@ -303,7 +311,7 @@ final class AppModel {
             "Installed extension copies: "
                 + (extensionManager.systemRecords.isEmpty ? "unknown"
                    : extensionManager.systemRecords.joined(separator: "; ")),
-            "Relaunches for missing camera (10 min): \(recentRelaunches)",
+            "Automatic relaunches since the camera last connected: \(recentRelaunches)",
             "Camera visible to a new process: "
                 + (cameraVisibleToNewProcess.map { $0 ? "yes" : "no" } ?? "not checked"),
             "Mac camera access: \(cameraAccess.diagnosticName)",

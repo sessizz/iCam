@@ -289,16 +289,44 @@ final class PeerServer {
     /// leaves accepted connections alone.
     private func updatePeerToPeer() {
         let wanted: Bool
-        if let active {
-            let interface = active.connection.currentPath?.availableInterfaces.first?.name ?? ""
-            wanted = active.transport == .wifi && (interface.hasPrefix("awdl") || interface.hasPrefix("llw"))
+        if let active, active.transport == .wifi {
+            // Unknown interface: keep peer-to-peer rather than risk cutting
+            // off a Mac that is connected through it.
+            let interface = Self.interfaceName(of: active.connection)
+            wanted = interface.map { $0.hasPrefix("awdl") || $0.hasPrefix("llw") } ?? true
         } else {
-            wanted = true
+            wanted = active == nil
         }
         guard wanted != wifiPeerToPeer else { return }
         wifiPeerToPeer = wanted
         log.info("Peer-to-peer Wi-Fi advertising \(wanted ? "on" : "off", privacy: .public)")
-        if isRunning { startWiFiListener() }
+        if isRunning { restartWiFiListener() }
+    }
+
+    private static func interfaceName(of connection: NWConnection) -> String? {
+        if let name = connection.currentPath?.availableInterfaces.first?.name { return name }
+        if case .hostPort(host: .ipv6(let address), port: _) = connection.endpoint {
+            return address.interface?.name
+        }
+        return nil
+    }
+
+    /// Starts the new listener only once the old one is gone, so its Bonjour
+    /// registration doesn't clash with the new one (which would rename the
+    /// service, e.g. "iPhone (2)").
+    private func restartWiFiListener() {
+        guard let old = wifiListener else {
+            startWiFiListener()
+            return
+        }
+        wifiListener = nil
+        listenerReady[.wifi] = false
+        old.newConnectionHandler = nil
+        old.stateUpdateHandler = { [weak self] state in
+            guard let self, case .cancelled = state, self.isRunning, self.wifiListener == nil else { return }
+            self.startWiFiListener()
+        }
+        old.cancel()
     }
 
     private func startLivenessTimer() {

@@ -235,6 +235,29 @@ final class DeviceManager {
            canAttempt(usbKey(usb)) {
             openUSB(usb, asProbe: true)
         }
+
+        // Upgrade peer-to-peer Wi-Fi → the local network as soon as the phone
+        // is reachable there.
+        if overPeerToPeer, let active, active.kind == .wifi, probe == nil, usbConnectInFlight.isEmpty,
+           let deviceID = connected?.deviceID,
+           let service = services.first(where: { $0.deviceID == deviceID && !$0.peerToPeerOnly }),
+           canAttempt(networkKey(service)) {
+            openNetworkProbe(service)
+        }
+    }
+
+    /// A second Wi-Fi connection that must not use peer-to-peer Wi-Fi; it
+    /// takes over from the current one once the phone accepts it.
+    private func openNetworkProbe(_ service: BonjourPhone) {
+        let connection = PhoneConnection(transport: NetworkTransport(endpoint: service.endpoint, allowPeerToPeer: false),
+                                         hello: makeHello(.wifi), serviceName: service.name)
+        probe = connection
+        probeKey = networkKey(service)
+        connection.onEvent = { [weak self] connection, event in
+            MainActor.assumeIsolated { self?.handle(event, from: connection) }
+        }
+        connection.start()
+        log.info("Trying \(service.name, privacy: .public) over the local network")
     }
 
     private func bestCandidate() -> PhoneEntry? {
@@ -258,7 +281,11 @@ final class DeviceManager {
 
     private func openWiFi(_ service: BonjourPhone) {
         let key = serviceKey(service)
-        let transport = NetworkTransport(endpoint: service.endpoint, allowPeerToPeer: service.peerToPeerOnly)
+        // Peer-to-peer Wi-Fi only when the phone isn't reachable otherwise,
+        // or when the local network failed (e.g. a guest network that
+        // isolates devices).
+        let transport = NetworkTransport(endpoint: service.endpoint,
+                                         allowPeerToPeer: service.peerToPeerOnly || (failures[key] ?? 0) > 0)
         let connection = PhoneConnection(transport: transport, hello: makeHello(.wifi), serviceName: service.name)
         attempt = connection
         attemptKey = key
@@ -329,7 +356,7 @@ final class DeviceManager {
                 probe = nil
                 probeKey = nil
                 if active == nil || connected?.deviceID == reply.deviceID {
-                    log.info("Switching to USB")
+                    log.info("Switching to the \(connection.kind.rawValue, privacy: .public) connection")
                     let old = active
                     activate(connection, reply: reply)
                     old?.onEvent = nil
@@ -487,6 +514,7 @@ final class DeviceManager {
 
     private func usbKey(_ device: USBDevice) -> String { "usb:\(device.serialNumber)" }
     private func serviceKey(_ service: BonjourPhone) -> String { "wifi:\(service.name)" }
+    private func networkKey(_ service: BonjourPhone) -> String { "wifi-network:\(service.name)" }
 
     private func key(for connection: PhoneConnection) -> String? {
         if let usb = connection.usbDevice { return usbKey(usb) }

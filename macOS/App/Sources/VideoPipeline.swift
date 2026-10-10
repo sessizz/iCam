@@ -79,7 +79,8 @@ final class FrameConformer {
 /// traffic); showing each frame the moment it arrives makes motion stutter
 /// even when no frame is lost. Every frame is held until its capture time
 /// plus an offset: the fastest recent transit plus the link's recent jitter
-/// (90th percentile over 4 s, at most 100 ms). Over USB that is a
+/// (97th percentile over 4 s, at most 100 ms, so even a delay that hits one
+/// frame in 30 is absorbed). Over USB that is a
 /// millisecond or two; frames that come later than that are shown at once.
 ///
 /// The offset follows its target gradually (a few ms per frame) so that a
@@ -140,7 +141,7 @@ final class PlayoutBuffer: @unchecked Sendable {
         }
         let transits = history.map(\.transit).sorted()
         let fastest = transits[0]
-        let jitter = transits[min(transits.count - 1, transits.count * 9 / 10)] - fastest
+        let jitter = transits[min(transits.count - 1, transits.count * 97 / 100)] - fastest
         let wanted = min(Self.maxDelay, max(0, jitter))
         // The target delay grows at once (protect against the next burst)
         // and shrinks slowly so it doesn't oscillate; the offset actually

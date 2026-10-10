@@ -1,0 +1,197 @@
+//
+//  AppModel.swift
+//  iCam (Mac)
+//
+
+import AVFoundation
+import Observation
+import ServiceManagement
+import SwiftUI
+import os
+
+@MainActor
+@Observable
+final class AppModel {
+
+    let extensionManager = ExtensionManager()
+    let devices = DeviceManager()
+
+    private(set) var sinkState: VirtualCameraSink.State = .searching
+    /// Some app is reading the virtual camera right now.
+    private(set) var cameraInUse = false
+    private(set) var stats = StreamStats()
+    private(set) var cameraAccess = AVCaptureDevice.authorizationStatus(for: .video)
+    private(set) var launchAtLogin = SMAppService.mainApp.status == .enabled
+
+    private(set) var codec: VideoCodec
+    private(set) var framing: PortraitFraming
+
+    @ObservationIgnored let preview = PreviewFeed()
+    @ObservationIgnored private let sink = VirtualCameraSink()
+    @ObservationIgnored private let log = Logger(subsystem: "app.icam.mac", category: "app")
+    @ObservationIgnored private var previewVisible = false
+    @ObservationIgnored private var messageTimer: Timer?
+    @ObservationIgnored private var started = false
+    @ObservationIgnored private let defaults = UserDefaults.standard
+
+    init() {
+        codec = VideoCodec(rawValue: UserDefaults.standard.string(forKey: "codec") ?? "") ?? .h264
+        framing = PortraitFraming(rawValue: UserDefaults.standard.string(forKey: "framing") ?? "") ?? .fill
+    }
+
+    var needsOnboarding: Bool {
+        extensionManager.status != .active || !defaults.bool(forKey: "didShowWelcome")
+    }
+
+    func markWelcomeShown() {
+        defaults.set(true, forKey: "didShowWelcome")
+    }
+
+    // MARK: Lifecycle
+
+    func start() {
+        guard !started else { return }
+        started = true
+
+        if !defaults.bool(forKey: "didConfigureLoginItem") {
+            defaults.set(true, forKey: "didConfigureLoginItem")
+            setLaunchAtLogin(true)
+        }
+
+        extensionManager.activate()
+
+        let sink = self.sink
+        let preview = self.preview
+        devices.codec = codec
+        devices.pipeline.framing = framing
+        devices.pipeline.cameraOutput = { buffer in sink.enqueue(buffer) }
+        devices.pipeline.previewOutput = { buffer in preview.enqueue(buffer) }
+        devices.pipeline.onStats = { [weak self] stats in
+            MainActor.assumeIsolated { self?.stats = stats }
+        }
+        sink.onStateChange = { [weak self] state in
+            MainActor.assumeIsolated { self?.sinkState = state }
+        }
+        sink.onDemandChange = { [weak self] inUse in
+            MainActor.assumeIsolated {
+                self?.cameraInUse = inUse
+                self?.updateDemand()
+            }
+        }
+
+        // Starting the virtual camera's input stream goes through the
+        // camera privacy check, so ask for access first.
+        if cameraAccess == .notDetermined {
+            AVCaptureDevice.requestAccess(for: .video) { _ in
+                DispatchQueue.main.async { [weak self] in
+                    MainActor.assumeIsolated {
+                        self?.cameraAccess = AVCaptureDevice.authorizationStatus(for: .video)
+                        sink.start()
+                    }
+                }
+            }
+        } else {
+            sink.start()
+        }
+
+        devices.start()
+
+        messageTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.updatePlaceholderMessage() }
+        }
+        updatePlaceholderMessage()
+    }
+
+    /// Called whenever the extension status changes to active.
+    func extensionBecameActive() {
+        sink.refresh()
+    }
+
+    // MARK: Demand
+
+    func setPreviewVisible(_ visible: Bool) {
+        previewVisible = visible
+        preview.isActive = visible
+        updateDemand()
+    }
+
+    private func updateDemand() {
+        devices.setDemand(cameraInUse || previewVisible)
+    }
+
+    // MARK: Settings
+
+    func setCodec(_ newValue: VideoCodec) {
+        guard newValue != codec else { return }
+        codec = newValue
+        defaults.set(newValue.rawValue, forKey: "codec")
+        devices.codec = newValue
+        devices.restartStreamIfNeeded()
+    }
+
+    func setFraming(_ newValue: PortraitFraming) {
+        framing = newValue
+        defaults.set(newValue.rawValue, forKey: "framing")
+        devices.pipeline.framing = newValue
+    }
+
+    func setLaunchAtLogin(_ enabled: Bool) {
+        do {
+            if enabled {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+        } catch {
+            log.error("Login item update failed: \(error.localizedDescription, privacy: .public)")
+        }
+        launchAtLogin = SMAppService.mainApp.status == .enabled
+    }
+
+    func selectLens(_ id: String) {
+        devices.send(settings: CameraSettings(lensID: id))
+    }
+
+    func setZoom(_ zoom: Double) {
+        devices.send(settings: CameraSettings(zoom: zoom))
+    }
+
+    func setMirrored(_ mirrored: Bool) {
+        devices.send(settings: CameraSettings(mirrored: mirrored))
+    }
+
+    func setStabilization(_ enabled: Bool) {
+        devices.send(settings: CameraSettings(stabilization: enabled))
+    }
+
+    // MARK: Placeholder
+
+    private func updatePlaceholderMessage() {
+        sink.setMessage(placeholderMessage())
+    }
+
+    private func placeholderMessage() -> String {
+        if let interruption = devices.phoneStatus?.interruption {
+            return interruption
+        }
+        switch devices.state {
+        case .connected:
+            let name = devices.connected?.name ?? "iPhone"
+            return devices.isStreaming
+                ? String(localized: "Starting \(name) camera…")
+                : String(localized: "Connected to \(name)")
+        case .connecting(let name):
+            return String(localized: "Connecting to \(name)…")
+        case .searching:
+            if devices.isPaused {
+                return String(localized: "Select your iPhone in the iCam menu")
+            }
+            if let error = devices.lastError {
+                return error
+            }
+            return devices.phones.isEmpty
+                ? String(localized: "Open iCam on your iPhone and connect it with a cable or Wi-Fi")
+                : String(localized: "Open iCam on your iPhone")
+        }
+    }
+}

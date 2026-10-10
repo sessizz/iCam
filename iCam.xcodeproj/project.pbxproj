@@ -1,0 +1,1091 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		18D909C3DDB7CE5DD13D2D26 /* VideoDecoder.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 2E0143187B502BB5BA6EEFFD /* VideoDecoder.swift */;
+		};
+		1ADDFB6EE7749E101ACEEFC5 /* PhoneModel.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 0D620F4315B58B3962DA07DC /* PhoneModel.swift */;
+		};
+		1C44373C5376EB45CC9397B9 /* ICamProtocol.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = D612935D1119C0599903FD6B /* ICamProtocol.swift */;
+		};
+		231BB0B6A72B864080D5A712 /* Transports.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = EE055C7F4FFD33182110983F /* Transports.swift */;
+		};
+		2DD64A773F95D186B9F6F43D /* CameraCapture.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 681F860BF18F8371AADAF60C /* CameraCapture.swift */;
+		};
+		2E687326730E48503E781CBB /* PhoneConnection.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 7EA5FD6C3B02CC2439AA60F1 /* PhoneConnection.swift */;
+		};
+		306D8B56AD3DDAACD2CFA676 /* MenuContentView.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 4166108B1480C8280F975401 /* MenuContentView.swift */;
+		};
+		397A761EBD6F1D37CA1A92D0 /* Assets.xcassets in Resources */ = {
+			isa = PBXBuildFile;
+			fileRef = F958E191CF947E255621B662 /* Assets.xcassets */;
+		};
+		43C91B1608BE985204CFB15A /* VirtualCameraConstants.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = C91641753783B9DA9C21B833 /* VirtualCameraConstants.swift */;
+		};
+		49A21889E547FDD796028E26 /* CameraExtension in Embed System Extensions */ = {
+			isa = PBXBuildFile;
+			fileRef = C846A9D32869F590D9009ABE /* com.example.icam.mac.CameraExtension.systemextension */;
+			settings = {
+				ATTRIBUTES = (
+					RemoveHeadersOnCopy,
+				);
+			};
+		};
+		4BB3429B51DE78F7D433F1C2 /* VideoPipeline.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 9A75F5B47554265538DF76F4 /* VideoPipeline.swift */;
+		};
+		4F321E24B4C18472111B7C57 /* PreviewFeed.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 9642DF066F6A2533420FF6BD /* PreviewFeed.swift */;
+		};
+		57B9F32135EA8DA393398EE4 /* AppModel.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 31FD16E1B174F396EABAD23F /* AppModel.swift */;
+		};
+		59BDE8053CFA2DB7C72E6BFA /* VirtualCameraConstants.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = C91641753783B9DA9C21B833 /* VirtualCameraConstants.swift */;
+		};
+		5B77A852FD1EA3A6CA531336 /* VirtualCameraSink.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 461C48F566E6AA3D84D4ADA9 /* VirtualCameraSink.swift */;
+		};
+		774DA7CDC1C1CC1976327F76 /* USBMux.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 5ABB4502162E48E283F0AB05 /* USBMux.swift */;
+		};
+		805C9313E5D3506D13D0ADD7 /* ICamProtocol.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = D612935D1119C0599903FD6B /* ICamProtocol.swift */;
+		};
+		807CC645CC79C96070B8F5B8 /* PhoneBrowser.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = E5D6DA2EE94FF1B5AD79B0FA /* PhoneBrowser.swift */;
+		};
+		87EC1901E8664FB1B1616375 /* StreamPipeline.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 337D7C138DBAB9F74147B16F /* StreamPipeline.swift */;
+		};
+		98C385187851F28F0944C2D1 /* DeviceManager.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = D633AB891501C3BC83BC01EA /* DeviceManager.swift */;
+		};
+		9DD3311E05D6C5C41D2A88A9 /* MessageFraming.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 7A34540D4E92C9417C17D181 /* MessageFraming.swift */;
+		};
+		9FE1C176CC499CDEF5F87E16 /* PeerServer.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = E6D9FFE8C177BF10D327D685 /* PeerServer.swift */;
+		};
+		A7280A337D4C77A4677EA5E6 /* ContentView.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 79A8A194405C980EC31787EE /* ContentView.swift */;
+		};
+		ABED8C0521B7821D37C65CA6 /* MessageFraming.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 7A34540D4E92C9417C17D181 /* MessageFraming.swift */;
+		};
+		B76A71C57A3FF86019CBD2C9 /* VideoEncoder.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = E370841F6741880848A961EE /* VideoEncoder.swift */;
+		};
+		C236FBB536E92483DB00B12C /* ICamApp.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 8864575751962B1A56CB2017 /* ICamApp.swift */;
+		};
+		C3F9EE7E9C1F503621DABDA6 /* WelcomeView.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 8D31FFCC955F8FA17B6AC44D /* WelcomeView.swift */;
+		};
+		CA50EE669AE71DDAC089D747 /* ExtensionManager.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 1C02196FFE73EE217D43AF89 /* ExtensionManager.swift */;
+		};
+		CD8E438D67860E43DDC88485 /* Assets.xcassets in Resources */ = {
+			isa = PBXBuildFile;
+			fileRef = 03D88F4CCE243B3D68115A1D /* Assets.xcassets */;
+		};
+		DF85529384EC3B6499A69A75 /* ICamMacApp.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 2F5C4FF09EF936227C0FF422 /* ICamMacApp.swift */;
+		};
+		DFF8EAA2F03C6D007EC4400A /* PlaceholderRenderer.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 23C80FA0A0B96C9BB89B7811 /* PlaceholderRenderer.swift */;
+		};
+		E20D993B9FCF335E6CB84908 /* CameraPreview.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = E89FC90606294CA84A436DB7 /* CameraPreview.swift */;
+		};
+		EFE368030E29115B6E3091A9 /* DeviceIdentity.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = F0D1723D52A06568ECD15EA7 /* DeviceIdentity.swift */;
+		};
+		F5DA1803F4541111433CBD5C /* ExtensionProvider.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 4FD3D73FB732F810D93A013B /* ExtensionProvider.swift */;
+		};
+		F8BD490A184011B273460943 /* main.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = DD6409A1F467B25572DB3633 /* main.swift */;
+		};
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CDD98C88F05F47F8E229DD54 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5DC61D677659CB93EE502EBC /* iCamCameraExtension */;
+			remoteInfo = iCamCameraExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		3F571F4051F6603C56A8661E /* Embed System Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(SYSTEM_EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			name = "Embed System Extensions";
+			files = (
+				49A21889E547FDD796028E26 /* CameraExtension in Embed System Extensions */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		03D88F4CCE243B3D68115A1D /* Assets.xcassets */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = folder.assetcatalog;
+			path = Assets.xcassets;
+			sourceTree = "<group>";
+		};
+		0D620F4315B58B3962DA07DC /* PhoneModel.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = PhoneModel.swift;
+			sourceTree = "<group>";
+		};
+		1C02196FFE73EE217D43AF89 /* ExtensionManager.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = ExtensionManager.swift;
+			sourceTree = "<group>";
+		};
+		23C80FA0A0B96C9BB89B7811 /* PlaceholderRenderer.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = PlaceholderRenderer.swift;
+			sourceTree = "<group>";
+		};
+		2E0143187B502BB5BA6EEFFD /* VideoDecoder.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = VideoDecoder.swift;
+			sourceTree = "<group>";
+		};
+		2F5C4FF09EF936227C0FF422 /* ICamMacApp.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = ICamMacApp.swift;
+			sourceTree = "<group>";
+		};
+		31FD16E1B174F396EABAD23F /* AppModel.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = AppModel.swift;
+			sourceTree = "<group>";
+		};
+		337D7C138DBAB9F74147B16F /* StreamPipeline.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = StreamPipeline.swift;
+			sourceTree = "<group>";
+		};
+		4166108B1480C8280F975401 /* MenuContentView.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = MenuContentView.swift;
+			sourceTree = "<group>";
+		};
+		461C48F566E6AA3D84D4ADA9 /* VirtualCameraSink.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = VirtualCameraSink.swift;
+			sourceTree = "<group>";
+		};
+		4FD3D73FB732F810D93A013B /* ExtensionProvider.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = ExtensionProvider.swift;
+			sourceTree = "<group>";
+		};
+		5ABB4502162E48E283F0AB05 /* USBMux.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = USBMux.swift;
+			sourceTree = "<group>";
+		};
+		5D489977FEDE84399BA56EED /* Info.plist */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.xml;
+			path = Info.plist;
+			sourceTree = "<group>";
+		};
+		681F860BF18F8371AADAF60C /* CameraCapture.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = CameraCapture.swift;
+			sourceTree = "<group>";
+		};
+		79A8A194405C980EC31787EE /* ContentView.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = ContentView.swift;
+			sourceTree = "<group>";
+		};
+		7A34540D4E92C9417C17D181 /* MessageFraming.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = MessageFraming.swift;
+			sourceTree = "<group>";
+		};
+		7C0C74234C0AE10ED8F6B181 /* iCam.app */ = {
+			isa = PBXFileReference;
+			explicitFileType = wrapper.application;
+			includeInIndex = 0;
+			path = iCam.app;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		7EA5FD6C3B02CC2439AA60F1 /* PhoneConnection.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = PhoneConnection.swift;
+			sourceTree = "<group>";
+		};
+		862A3E2F968564CCA606371B /* CameraExtension.entitlements */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.entitlements;
+			path = CameraExtension.entitlements;
+			sourceTree = "<group>";
+		};
+		8864575751962B1A56CB2017 /* ICamApp.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = ICamApp.swift;
+			sourceTree = "<group>";
+		};
+		8D31FFCC955F8FA17B6AC44D /* WelcomeView.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = WelcomeView.swift;
+			sourceTree = "<group>";
+		};
+		8FB0C58D2E397D187366A921 /* Signing.xcconfig */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.xcconfig;
+			path = Signing.xcconfig;
+			sourceTree = "<group>";
+		};
+		9642DF066F6A2533420FF6BD /* PreviewFeed.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = PreviewFeed.swift;
+			sourceTree = "<group>";
+		};
+		9A75F5B47554265538DF76F4 /* VideoPipeline.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = VideoPipeline.swift;
+			sourceTree = "<group>";
+		};
+		C846A9D32869F590D9009ABE /* com.example.icam.mac.CameraExtension.systemextension */ = {
+			isa = PBXFileReference;
+			explicitFileType = "wrapper.system-extension";
+			includeInIndex = 0;
+			path = com.example.icam.mac.CameraExtension.systemextension;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		C91641753783B9DA9C21B833 /* VirtualCameraConstants.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = VirtualCameraConstants.swift;
+			sourceTree = "<group>";
+		};
+		D612935D1119C0599903FD6B /* ICamProtocol.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = ICamProtocol.swift;
+			sourceTree = "<group>";
+		};
+		D633AB891501C3BC83BC01EA /* DeviceManager.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = DeviceManager.swift;
+			sourceTree = "<group>";
+		};
+		DD6409A1F467B25572DB3633 /* main.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = main.swift;
+			sourceTree = "<group>";
+		};
+		E314DF78F87502B983B3E5FF /* iCam.app */ = {
+			isa = PBXFileReference;
+			explicitFileType = wrapper.application;
+			includeInIndex = 0;
+			path = iCam.app;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		E370841F6741880848A961EE /* VideoEncoder.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = VideoEncoder.swift;
+			sourceTree = "<group>";
+		};
+		E5D6DA2EE94FF1B5AD79B0FA /* PhoneBrowser.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = PhoneBrowser.swift;
+			sourceTree = "<group>";
+		};
+		E6D9FFE8C177BF10D327D685 /* PeerServer.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = PeerServer.swift;
+			sourceTree = "<group>";
+		};
+		E7AEA088B29165D21F57AE78 /* README.md */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = net.daringfireball.markdown;
+			path = README.md;
+			sourceTree = "<group>";
+		};
+		E89FC90606294CA84A436DB7 /* CameraPreview.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = CameraPreview.swift;
+			sourceTree = "<group>";
+		};
+		EDC7736629EA06544BC4FC03 /* Info.plist */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.xml;
+			path = Info.plist;
+			sourceTree = "<group>";
+		};
+		EE055C7F4FFD33182110983F /* Transports.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = Transports.swift;
+			sourceTree = "<group>";
+		};
+		EE8B7B8D83670C22E1F25BC9 /* iCam.entitlements */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.entitlements;
+			path = iCam.entitlements;
+			sourceTree = "<group>";
+		};
+		F0D1723D52A06568ECD15EA7 /* DeviceIdentity.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = DeviceIdentity.swift;
+			sourceTree = "<group>";
+		};
+		F958E191CF947E255621B662 /* Assets.xcassets */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = folder.assetcatalog;
+			path = Assets.xcassets;
+			sourceTree = "<group>";
+		};
+		FF0B2503BA1E19943C4BAD0A /* Info.plist */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.xml;
+			path = Info.plist;
+			sourceTree = "<group>";
+		};
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		40AAC8FEE987A3AFEC2BB1CC /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A353F4C34D552E0296912BFD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AFD4F2D887E28E9132A1E044 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		2AC8BA37DAC32D5437812408 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E314DF78F87502B983B3E5FF /* iCam.app */,
+				7C0C74234C0AE10ED8F6B181 /* iCam.app */,
+				C846A9D32869F590D9009ABE /* com.example.icam.mac.CameraExtension.systemextension */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		2B731CEFC6751AAE0EC69B98 = {
+			isa = PBXGroup;
+			children = (
+				E7AEA088B29165D21F57AE78 /* README.md */,
+				D1F831BEDADE6D7706CCBA24 /* Config */,
+				9D10A42589C8F5479091BEBD /* Shared */,
+				4BB4DDA056F6DB57003A27FE /* iOS */,
+				9873A5EBF3CF38A74E7816EB /* macOS */,
+				2AC8BA37DAC32D5437812408 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		2E75578A7AA36C9E01892A91 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				862A3E2F968564CCA606371B /* CameraExtension.entitlements */,
+				5D489977FEDE84399BA56EED /* Info.plist */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		4BB4DDA056F6DB57003A27FE /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				8EACBD6762F2138986FB9B19 /* Resources */,
+				954A24F83BC49B8C20160F9B /* Sources */,
+			);
+			path = iOS;
+			sourceTree = "<group>";
+		};
+		6211EF38C1D7E9E54E363171 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				833A70399C6CFB662F8FA415 /* Resources */,
+				6B06310020BC2A0430BA0C82 /* Sources */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		6B06310020BC2A0430BA0C82 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				31FD16E1B174F396EABAD23F /* AppModel.swift */,
+				D633AB891501C3BC83BC01EA /* DeviceManager.swift */,
+				1C02196FFE73EE217D43AF89 /* ExtensionManager.swift */,
+				2F5C4FF09EF936227C0FF422 /* ICamMacApp.swift */,
+				4166108B1480C8280F975401 /* MenuContentView.swift */,
+				E5D6DA2EE94FF1B5AD79B0FA /* PhoneBrowser.swift */,
+				7EA5FD6C3B02CC2439AA60F1 /* PhoneConnection.swift */,
+				9642DF066F6A2533420FF6BD /* PreviewFeed.swift */,
+				EE055C7F4FFD33182110983F /* Transports.swift */,
+				5ABB4502162E48E283F0AB05 /* USBMux.swift */,
+				2E0143187B502BB5BA6EEFFD /* VideoDecoder.swift */,
+				9A75F5B47554265538DF76F4 /* VideoPipeline.swift */,
+				461C48F566E6AA3D84D4ADA9 /* VirtualCameraSink.swift */,
+				8D31FFCC955F8FA17B6AC44D /* WelcomeView.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		82C9743A795CB94BA9D256BD /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				C91641753783B9DA9C21B833 /* VirtualCameraConstants.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		833A70399C6CFB662F8FA415 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				F958E191CF947E255621B662 /* Assets.xcassets */,
+				EE8B7B8D83670C22E1F25BC9 /* iCam.entitlements */,
+				FF0B2503BA1E19943C4BAD0A /* Info.plist */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		8EACBD6762F2138986FB9B19 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				03D88F4CCE243B3D68115A1D /* Assets.xcassets */,
+				EDC7736629EA06544BC4FC03 /* Info.plist */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		9526236A3EB9AF5F3827D05F /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				4FD3D73FB732F810D93A013B /* ExtensionProvider.swift */,
+				DD6409A1F467B25572DB3633 /* main.swift */,
+				23C80FA0A0B96C9BB89B7811 /* PlaceholderRenderer.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		954A24F83BC49B8C20160F9B /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				681F860BF18F8371AADAF60C /* CameraCapture.swift */,
+				E89FC90606294CA84A436DB7 /* CameraPreview.swift */,
+				79A8A194405C980EC31787EE /* ContentView.swift */,
+				F0D1723D52A06568ECD15EA7 /* DeviceIdentity.swift */,
+				8864575751962B1A56CB2017 /* ICamApp.swift */,
+				E6D9FFE8C177BF10D327D685 /* PeerServer.swift */,
+				0D620F4315B58B3962DA07DC /* PhoneModel.swift */,
+				337D7C138DBAB9F74147B16F /* StreamPipeline.swift */,
+				E370841F6741880848A961EE /* VideoEncoder.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		9873A5EBF3CF38A74E7816EB /* macOS */ = {
+			isa = PBXGroup;
+			children = (
+				6211EF38C1D7E9E54E363171 /* App */,
+				B55FA7B42DBEEE958F205D6D /* CameraExtension */,
+				82C9743A795CB94BA9D256BD /* Shared */,
+			);
+			path = macOS;
+			sourceTree = "<group>";
+		};
+		9D10A42589C8F5479091BEBD /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				D612935D1119C0599903FD6B /* ICamProtocol.swift */,
+				7A34540D4E92C9417C17D181 /* MessageFraming.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		B55FA7B42DBEEE958F205D6D /* CameraExtension */ = {
+			isa = PBXGroup;
+			children = (
+				2E75578A7AA36C9E01892A91 /* Resources */,
+				9526236A3EB9AF5F3827D05F /* Sources */,
+			);
+			path = CameraExtension;
+			sourceTree = "<group>";
+		};
+		D1F831BEDADE6D7706CCBA24 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				8FB0C58D2E397D187366A921 /* Signing.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		340A7F84F369FCE4DE659AFB /* iCam (iOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9A7B258F49A98A0E2D35B23E /* Build configuration list for iCam (iOS) */;
+			buildPhases = (
+				DB32A981BDF8494B7F93818F /* Sources */,
+				AFD4F2D887E28E9132A1E044 /* Frameworks */,
+				437F91904AAE5F2D3406C1C5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "iCam (iOS)";
+			productName = "iCam (iOS)";
+			productReference = E314DF78F87502B983B3E5FF /* iCam.app */;
+			productType = "com.apple.product-type.application";
+		};
+		5DC61D677659CB93EE502EBC /* iCamCameraExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EC021B983EF1859A26759A24 /* Build configuration list for iCamCameraExtension */;
+			buildPhases = (
+				4934725FD69D2F7B98BB0715 /* Sources */,
+				A353F4C34D552E0296912BFD /* Frameworks */,
+				A2358E526CE61BD65CBBBE22 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = iCamCameraExtension;
+			productName = iCamCameraExtension;
+			productReference = C846A9D32869F590D9009ABE /* com.example.icam.mac.CameraExtension.systemextension */;
+			productType = "com.apple.product-type.system-extension";
+		};
+		F99436A044F18CCEA78D0A6A /* iCam (macOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 565E743F7C7580EAB38B38C2 /* Build configuration list for iCam (macOS) */;
+			buildPhases = (
+				C23399D7AD96C8E47737E99F /* Sources */,
+				40AAC8FEE987A3AFEC2BB1CC /* Frameworks */,
+				75401C62DB587268BA476583 /* Resources */,
+				3F571F4051F6603C56A8661E /* Embed System Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AD8B858319504CF9687A99B6 /* PBXTargetDependency */,
+			);
+			name = "iCam (macOS)";
+			productName = "iCam (macOS)";
+			productReference = 7C0C74234C0AE10ED8F6B181 /* iCam.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		46F86FAA6BBF9AC94A7E4595 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					340A7F84F369FCE4DE659AFB = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					5DC61D677659CB93EE502EBC = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					F99436A044F18CCEA78D0A6A = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = 0B709DA39D5685FA0E382D98 /* Build configuration list for iCam */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				tr,
+				Base,
+			);
+			mainGroup = 2B731CEFC6751AAE0EC69B98;
+			productRefGroup = 2AC8BA37DAC32D5437812408 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				340A7F84F369FCE4DE659AFB /* iCam (iOS) */,
+				F99436A044F18CCEA78D0A6A /* iCam (macOS) */,
+				5DC61D677659CB93EE502EBC /* iCamCameraExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		437F91904AAE5F2D3406C1C5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CD8E438D67860E43DDC88485 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		75401C62DB587268BA476583 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				397A761EBD6F1D37CA1A92D0 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A2358E526CE61BD65CBBBE22 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4934725FD69D2F7B98BB0715 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				59BDE8053CFA2DB7C72E6BFA /* VirtualCameraConstants.swift in Sources */,
+				F5DA1803F4541111433CBD5C /* ExtensionProvider.swift in Sources */,
+				DFF8EAA2F03C6D007EC4400A /* PlaceholderRenderer.swift in Sources */,
+				F8BD490A184011B273460943 /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C23399D7AD96C8E47737E99F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				805C9313E5D3506D13D0ADD7 /* ICamProtocol.swift in Sources */,
+				ABED8C0521B7821D37C65CA6 /* MessageFraming.swift in Sources */,
+				43C91B1608BE985204CFB15A /* VirtualCameraConstants.swift in Sources */,
+				57B9F32135EA8DA393398EE4 /* AppModel.swift in Sources */,
+				98C385187851F28F0944C2D1 /* DeviceManager.swift in Sources */,
+				CA50EE669AE71DDAC089D747 /* ExtensionManager.swift in Sources */,
+				DF85529384EC3B6499A69A75 /* ICamMacApp.swift in Sources */,
+				306D8B56AD3DDAACD2CFA676 /* MenuContentView.swift in Sources */,
+				807CC645CC79C96070B8F5B8 /* PhoneBrowser.swift in Sources */,
+				2E687326730E48503E781CBB /* PhoneConnection.swift in Sources */,
+				4F321E24B4C18472111B7C57 /* PreviewFeed.swift in Sources */,
+				231BB0B6A72B864080D5A712 /* Transports.swift in Sources */,
+				774DA7CDC1C1CC1976327F76 /* USBMux.swift in Sources */,
+				18D909C3DDB7CE5DD13D2D26 /* VideoDecoder.swift in Sources */,
+				4BB3429B51DE78F7D433F1C2 /* VideoPipeline.swift in Sources */,
+				5B77A852FD1EA3A6CA531336 /* VirtualCameraSink.swift in Sources */,
+				C3F9EE7E9C1F503621DABDA6 /* WelcomeView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DB32A981BDF8494B7F93818F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1C44373C5376EB45CC9397B9 /* ICamProtocol.swift in Sources */,
+				9DD3311E05D6C5C41D2A88A9 /* MessageFraming.swift in Sources */,
+				2DD64A773F95D186B9F6F43D /* CameraCapture.swift in Sources */,
+				E20D993B9FCF335E6CB84908 /* CameraPreview.swift in Sources */,
+				A7280A337D4C77A4677EA5E6 /* ContentView.swift in Sources */,
+				EFE368030E29115B6E3091A9 /* DeviceIdentity.swift in Sources */,
+				C236FBB536E92483DB00B12C /* ICamApp.swift in Sources */,
+				9FE1C176CC499CDEF5F87E16 /* PeerServer.swift in Sources */,
+				1ADDFB6EE7749E101ACEEFC5 /* PhoneModel.swift in Sources */,
+				87EC1901E8664FB1B1616375 /* StreamPipeline.swift in Sources */,
+				B76A71C57A3FF86019CBD2C9 /* VideoEncoder.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AD8B858319504CF9687A99B6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5DC61D677659CB93EE502EBC /* iCamCameraExtension */;
+			targetProxy = CDD98C88F05F47F8E229DD54 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0B52739B7FF122DB8F23B254 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8FB0C58D2E397D187366A921 /* Signing.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		1A45B466C637AC7832A50BCB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = macOS/CameraExtension/Resources/CameraExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(CURRENT_PROJECT_VERSION)";
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = macOS/CameraExtension/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = "$(MARKETING_VERSION)";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(BUNDLE_ID_PREFIX).mac.CameraExtension";
+				PRODUCT_MODULE_NAME = CameraExtension;
+				PRODUCT_NAME = "$(PRODUCT_BUNDLE_IDENTIFIER)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		69C9F3FA2467D8638AD15219 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = macOS/App/Resources/iCam.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = "$(CURRENT_PROJECT_VERSION)";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = macOS/App/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = "$(MARKETING_VERSION)";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(BUNDLE_ID_PREFIX).mac";
+				PRODUCT_NAME = iCam;
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		72009555249A76ED19A047B9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8FB0C58D2E397D187366A921 /* Signing.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		78C3FB5E6D5C72AD33C6A0B3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = macOS/CameraExtension/Resources/CameraExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(CURRENT_PROJECT_VERSION)";
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = macOS/CameraExtension/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = "$(MARKETING_VERSION)";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(BUNDLE_ID_PREFIX).mac.CameraExtension";
+				PRODUCT_MODULE_NAME = CameraExtension;
+				PRODUCT_NAME = "$(PRODUCT_BUNDLE_IDENTIFIER)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		7AF278084E25D816DF5FA61B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(CURRENT_PROJECT_VERSION)";
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = iOS/Resources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = "$(MARKETING_VERSION)";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(BUNDLE_ID_PREFIX)";
+				PRODUCT_NAME = iCam;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		C04B09D59E5DEED24F156DE9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = macOS/App/Resources/iCam.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = "$(CURRENT_PROJECT_VERSION)";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = macOS/App/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = "$(MARKETING_VERSION)";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(BUNDLE_ID_PREFIX).mac";
+				PRODUCT_NAME = iCam;
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C43599EFF669216C767F751F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(CURRENT_PROJECT_VERSION)";
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = iOS/Resources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = "$(MARKETING_VERSION)";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(BUNDLE_ID_PREFIX)";
+				PRODUCT_NAME = iCam;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0B709DA39D5685FA0E382D98 /* Build configuration list for iCam */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				72009555249A76ED19A047B9 /* Debug */,
+				0B52739B7FF122DB8F23B254 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		565E743F7C7580EAB38B38C2 /* Build configuration list for iCam (macOS) */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C04B09D59E5DEED24F156DE9 /* Debug */,
+				69C9F3FA2467D8638AD15219 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9A7B258F49A98A0E2D35B23E /* Build configuration list for iCam (iOS) */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7AF278084E25D816DF5FA61B /* Debug */,
+				C43599EFF669216C767F751F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EC021B983EF1859A26759A24 /* Build configuration list for iCamCameraExtension */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				78C3FB5E6D5C72AD33C6A0B3 /* Debug */,
+				1A45B466C637AC7832A50BCB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+}

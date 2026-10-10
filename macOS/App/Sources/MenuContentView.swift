@@ -189,6 +189,10 @@ private struct ExtensionBanner: View {
                         }
                     }
                 }
+            } else if model.cameraMissing || model.extensionOutdated {
+                banner(icon: "exclamationmark.triangle.fill", color: .orange, text: missingCameraText) {
+                    Button("Reopen iCam") { model.relaunch() }
+                }
             } else if case .failed(let reason) = model.sinkState {
                 banner(icon: "exclamationmark.triangle.fill", color: .orange, text: Text(verbatim: reason)) {
                     Button("Retry") { model.extensionBecameActive() }
@@ -216,6 +220,13 @@ private struct ExtensionBanner: View {
                 Button("Retry") { model.extensionManager.activate() }
             }
         }
+    }
+
+    private var missingCameraText: Text {
+        if model.extensionManager.hasOutgoingCopy || model.extensionOutdated {
+            return Text("An older copy of the iCam camera is still in use. Quit apps that use the camera (OBS, Zoom, FaceTime…), then reopen iCam. If that doesn't help, restart your Mac.")
+        }
+        return Text("macOS hasn't made the iCam camera available to this app yet. Quit apps that use the camera (OBS, Zoom, FaceTime…), then reopen iCam. If that doesn't help, restart your Mac.")
     }
 
     private func banner<Accessory: View>(icon: String, color: Color, text: Text,

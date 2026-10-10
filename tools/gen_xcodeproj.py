@@ -232,6 +232,10 @@ TARGETS = {
         "settings": {
             "CODE_SIGN_ENTITLEMENTS": "macOS/CameraExtension/Resources/CameraExtension.entitlements",
             "ENABLE_HARDENED_RUNTIME": "YES",
+            # The install script sets this separately so the extension's
+            # version (and with it a disruptive system extension update)
+            # only changes when the extension itself changed.
+            "ICAM_EXTENSION_VERSION": "$(CURRENT_PROJECT_VERSION)",
             "INFOPLIST_FILE": "macOS/CameraExtension/Resources/Info.plist",
             "LD_RUNPATH_SEARCH_PATHS": ["$(inherited)", "@executable_path/../Frameworks",
                                         "@executable_path/../../../../Frameworks"],

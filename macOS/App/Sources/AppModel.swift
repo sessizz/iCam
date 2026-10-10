@@ -33,6 +33,10 @@ final class AppModel {
     @ObservationIgnored private let log = Logger(subsystem: "app.icam.mac", category: "app")
     @ObservationIgnored private var previewVisible = false
     @ObservationIgnored private var searchingSince: Date?
+    @ObservationIgnored private var lastRecordsRefresh = Date.distantPast
+    /// The extension is active but its camera has stayed invisible to this
+    /// process for a while.
+    private(set) var cameraMissing = false
     @ObservationIgnored private var messageTimer: Timer?
     @ObservationIgnored private var started = false
     @ObservationIgnored private let defaults = UserDefaults.standard
@@ -188,27 +192,58 @@ final class AppModel {
 
     // MARK: Self relaunch
 
-    private static let lastRelaunchKey = "lastRelaunchForMissingCamera"
+    private static let relaunchHistoryKey = "relaunchesForMissingCamera"
+    /// How long the camera must stay invisible before each successive
+    /// relaunch within ten minutes: the first catches the usual case right
+    /// after an update, the later ones a slow re-registration.
+    private static let relaunchDelays: [TimeInterval] = [4, 15, 45]
+
+    /// The camera extension that serves apps reports a different build than
+    /// the one bundled with this app: an older copy is still running.
+    var extensionOutdated: Bool {
+        guard let bundled = extensionManager.bundledVersion,
+              let status = sinkDiagnostics.extensionStatus,
+              status.hasPrefix("build "),
+              let end = status.firstIndex(of: ";") else { return false }
+        return status[status.index(status.startIndex, offsetBy: 6)..<end] != bundled
+    }
+
+    /// Relaunches done in the last ten minutes (they span app instances).
+    var recentRelaunches: Int { recentRelaunchTimes().count }
+
+    private func recentRelaunchTimes() -> [Double] {
+        let now = Date().timeIntervalSince1970
+        return (defaults.array(forKey: Self.relaunchHistoryKey) as? [Double] ?? []).filter { now - $0 < 600 }
+    }
 
     /// macOS doesn't show a camera extension to a process that was already
     /// running when the extension was activated or updated (it appears only
     /// after a relaunch). If the extension is active but its device stays
-    /// invisible, relaunch once (at most every 10 minutes).
+    /// invisible, relaunch, up to three times in ten minutes.
     private func relaunchIfCameraInvisible() {
         guard extensionManager.status == .active, sinkState == .searching else {
             searchingSince = nil
+            if cameraMissing { cameraMissing = false }
             return
         }
         let now = Date()
+        // Keep the extension list current for the menu and diagnostics.
+        if now.timeIntervalSince(lastRecordsRefresh) > 10 {
+            lastRecordsRefresh = now
+            extensionManager.refreshSystemRecords()
+        }
         guard let since = searchingSince else {
             searchingSince = now
             return
         }
-        guard now.timeIntervalSince(since) > 4 else { return }
-        let last = defaults.double(forKey: Self.lastRelaunchKey)
-        guard now.timeIntervalSince1970 - last > 600 else { return }
-        defaults.set(now.timeIntervalSince1970, forKey: Self.lastRelaunchKey)
-        log.notice("Virtual camera not visible to this process; relaunching")
+        let invisibleFor = now.timeIntervalSince(since)
+        if !cameraMissing, invisibleFor > 6 { cameraMissing = true }
+
+        let history = recentRelaunchTimes()
+        guard history.count < Self.relaunchDelays.count,
+              invisibleFor > Self.relaunchDelays[history.count] else { return }
+        defaults.set(history + [now.timeIntervalSince1970], forKey: Self.relaunchHistoryKey)
+        log.notice("Virtual camera not visible to this process; relaunching (\(history.count + 1))")
         relaunch()
     }
 
@@ -241,7 +276,12 @@ final class AppModel {
         }
         var lines = [
             "iCam \(version), macOS \(ProcessInfo.processInfo.operatingSystemVersionString)",
-            "Extension: \(extensionManager.status)",
+            "Extension: \(extensionManager.status), bundled build \(extensionManager.bundledVersion ?? "?")"
+                + (extensionManager.replacedDuringThisRun ? ", updated during this run" : ""),
+            "Installed extension copies: "
+                + (extensionManager.systemRecords.isEmpty ? "unknown"
+                   : extensionManager.systemRecords.joined(separator: "; ")),
+            "Relaunches for missing camera (10 min): \(recentRelaunches)",
             "Mac camera access: \(cameraAccess.diagnosticName)",
             "Virtual camera input: \(d.state)",
             "AVFoundation sees iCam camera: \(d.avFoundationSeesCamera ? "yes" : "no")",

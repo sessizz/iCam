@@ -38,16 +38,56 @@ if [ -z "$TEAM" ]; then
 fi
 echo "==> Signing with team $TEAM"
 
-# macOS only replaces an already-active system extension when its version
-# changes, so every install gets a fresh build number.
-BUILD_NUMBER="$(date +%s)"
-
 # Keep build products out of the repository: it may live in a synced folder
 # (iCloud/Google Drive), which slows builds and can break code signing.
 DERIVED="$HOME/Library/Developer/Xcode/DerivedData/iCam-install"
 LOG="$DERIVED/install-mac.log"
 mkdir -p "$DERIVED"
-echo "==> Building build $BUILD_NUMBER (full log: $LOG)"
+
+# The app gets a fresh build number on every install. The camera extension
+# keeps its version until something it is built from changes: macOS replaces
+# an active system extension whenever its version changes, and that is
+# disruptive (apps using the camera keep the old copy, and the new camera may
+# stay hidden until they quit).
+extension_fingerprint() {
+  {
+    echo "$TEAM"
+    find macOS/CameraExtension macOS/Shared Config iCam.xcodeproj/project.pbxproj \
+      -type f ! -name '.*' -print0 | sort -z | xargs -0 shasum -a 256
+  } | shasum -a 256 | cut -c1-16
+}
+APP_BUILD="$(date +%s)"
+FINGERPRINT="$(extension_fingerprint)"
+STATE="$DERIVED/extension-version"
+EXT_BUILD=""
+if [ -f "$STATE" ]; then
+  read -r SAVED_FINGERPRINT SAVED_BUILD < "$STATE" || true
+  if [ "${SAVED_FINGERPRINT:-}" = "$FINGERPRINT" ]; then
+    EXT_BUILD="${SAVED_BUILD:-}"
+  fi
+fi
+[ -n "$EXT_BUILD" ] || EXT_BUILD="$APP_BUILD"
+
+EXTENSION_ID="$(sed -n 's/^[[:space:]]*BUNDLE_ID_PREFIX[[:space:]]*=[[:space:]]*\([^[:space:]]*\).*/\1/p' \
+  Config/Signing.xcconfig | head -1).mac.CameraExtension"
+ACTIVE_LINE="$(systemextensionsctl list 2>/dev/null | grep -F "$EXTENSION_ID" | grep -F "activated enabled" | head -1 || true)"
+if [ -n "$ACTIVE_LINE" ] && ! printf '%s' "$ACTIVE_LINE" | grep -qF "/$EXT_BUILD)"; then
+  echo "==> The camera extension changed and will be updated (extension build $EXT_BUILD)."
+  VIDEO_APPS=""
+  for app in OBS zoom.us FaceTime "Photo Booth" "QuickTime Player" MSTeams "Microsoft Teams" Webex \
+             Discord Skype "Ecamm Live" Loom; do
+    if pgrep -xq "$app"; then VIDEO_APPS="$VIDEO_APPS${VIDEO_APPS:+, }$app"; fi
+  done
+  if [ -n "$VIDEO_APPS" ]; then
+    echo "    These apps may be using the camera: $VIDEO_APPS"
+    echo "    Quit them first, otherwise macOS keeps the old camera running and the"
+    echo "    new one may stay hidden until they quit (or until you restart the Mac)."
+    if [ -t 0 ]; then
+      read -r -p "    Press Enter once they are closed (or Ctrl-C to cancel)... " _
+    fi
+  fi
+fi
+echo "==> Building app build $APP_BUILD, extension build $EXT_BUILD (full log: $LOG)"
 if ! xcodebuild \
   -project iCam.xcodeproj \
   -scheme "iCam (macOS)" \
@@ -57,7 +97,8 @@ if ! xcodebuild \
   -allowProvisioningUpdates \
   DEVELOPMENT_TEAM="$TEAM" \
   CODE_SIGN_STYLE=Automatic \
-  CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+  CURRENT_PROJECT_VERSION="$APP_BUILD" \
+  ICAM_EXTENSION_VERSION="$EXT_BUILD" \
   build >"$LOG" 2>&1; then
   echo "error: build failed. Errors:" >&2
   grep -E "error:|warning: .*(sign|provision)" "$LOG" | sort -u >&2 || tail -40 "$LOG" >&2
@@ -77,6 +118,7 @@ for ext in "$EXT"/*.systemextension; do
   fi
 done
 echo "==> Signed: app and camera extension both use team $APP_TEAM"
+echo "$FINGERPRINT $EXT_BUILD" > "$STATE"
 
 if pgrep -xq iCam; then
   osascript -e 'quit app "iCam"' >/dev/null 2>&1 || true
@@ -86,8 +128,14 @@ fi
 rm -rf /Applications/iCam.app
 cp -R "$APP" /Applications/
 open /Applications/iCam.app
-echo "==> Installed /Applications/iCam.app (build $BUILD_NUMBER)"
+echo "==> Installed /Applications/iCam.app (build $APP_BUILD, camera extension build $EXT_BUILD)"
 echo "    First run: approve the camera extension in System Settings when asked."
 echo "    Video apps that were already open must be restarted to pick up a new extension."
-sleep 3
-systemextensionsctl list 2>/dev/null | grep -i "icam" || true
+sleep 5
+EXT_LINES="$(systemextensionsctl list 2>/dev/null | grep -F "$EXTENSION_ID" || true)"
+[ -n "$EXT_LINES" ] && echo "$EXT_LINES"
+if printf '%s' "$EXT_LINES" | grep -q "terminated"; then
+  echo "    An older copy of the camera extension is still loaded. Quit every app that"
+  echo "    uses the camera (OBS, Zoom, FaceTime, browsers in a call...), then reopen iCam."
+  echo "    If iCam still can't find its camera, restart the Mac."
+fi

@@ -41,6 +41,16 @@
         }
       }
     },
+    "An older copy of the iCam camera is still in use. Quit apps that use the camera (OBS, Zoom, FaceTime…), then reopen iCam. If that doesn't help, restart your Mac.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCam kamerasının eski bir kopyası hâlâ kullanımda. Kamerayı kullanan uygulamaları (OBS, Zoom, FaceTime…) kapatın, ardından iCam'i yeniden açın. Sorun sürerse Mac'inizi yeniden başlatın."
+          }
+        }
+      }
+    },
     "Camera": {
       "localizations": {
         "tr": {
@@ -391,6 +401,16 @@
         }
       }
     },
+    "Reopen iCam": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCam'i Yeniden Aç"
+          }
+        }
+      }
+    },
     "Restart your Mac to finish installing the camera.": {
       "localizations": {
         "tr": {
@@ -597,6 +617,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "iCam; FaceTime, Zoom, Teams, Meet, Photo Booth, OBS ve diğer tüm kamera uygulamalarıyla çalışır."
+          }
+        }
+      }
+    },
+    "macOS hasn't made the iCam camera available to this app yet. Quit apps that use the camera (OBS, Zoom, FaceTime…), then reopen iCam. If that doesn't help, restart your Mac.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS, iCam kamerasını bu uygulamaya henüz açmadı. Kamerayı kullanan uygulamaları (OBS, Zoom, FaceTime…) kapatın, ardından iCam'i yeniden açın. Sorun sürerse Mac'inizi yeniden başlatın."
           }
         }
       }

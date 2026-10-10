@@ -26,11 +26,36 @@ final class ExtensionManager: NSObject {
 
     private(set) var status: Status = .unknown
 
+    /// What `systemextensionsctl list` reports for the iCam extension, one
+    /// entry per installed copy, e.g. "1.0/1791621540 [activated enabled]".
+    private(set) var systemRecords: [String] = []
+
+    /// An older copy is still loaded (usually because a video app kept using
+    /// the camera during an update). macOS then may not offer the new copy's
+    /// camera to apps until the old one is gone.
+    var hasOutgoingCopy: Bool {
+        systemRecords.contains { $0.contains("terminat") || $0.contains("uninstall") }
+    }
+
+    /// The bundled extension replaced an installed copy while this process
+    /// was running.
+    private(set) var replacedDuringThisRun = false
+
     @ObservationIgnored private let log = Logger(subsystem: "app.icam.mac", category: "extension")
 
-    var extensionIdentifier: String {
+    var extensionIdentifier: String { Self.extensionIdentifier }
+
+    private nonisolated static var extensionIdentifier: String {
         (Bundle.main.bundleIdentifier ?? "app.icam.mac") + ".CameraExtension"
     }
+
+    /// Version (CFBundleVersion) of the extension bundled with this app, nil
+    /// if it can't be read.
+    let bundledVersion: String? = {
+        let url = Bundle.main.bundleURL
+            .appendingPathComponent("Contents/Library/SystemExtensions/\(ExtensionManager.extensionIdentifier).systemextension")
+        return Bundle(url: url)?.infoDictionary?["CFBundleVersion"] as? String
+    }()
 
     var isInApplicationsFolder: Bool {
         let path = Bundle.main.bundleURL.resolvingSymlinksInPath().path
@@ -59,6 +84,43 @@ final class ExtensionManager: NSObject {
         OSSystemExtensionManager.shared.submitRequest(request)
     }
 
+    /// Re-reads `systemextensionsctl list` in the background.
+    func refreshSystemRecords() {
+        let identifier = extensionIdentifier
+        Task.detached(priority: .utility) {
+            let records = Self.readSystemRecords(identifier: identifier)
+            await MainActor.run { self.systemRecords = records }
+        }
+    }
+
+    private nonisolated static func readSystemRecords(identifier: String) -> [String] {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/systemextensionsctl")
+        process.arguments = ["list"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        do {
+            try process.run()
+        } catch {
+            return ["systemextensionsctl failed: \(error.localizedDescription)"]
+        }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        // Lines look like:
+        // *  *  TEAMID  com.x.icam.mac.CameraExtension (1.0/1791621540)  iCam Camera  [activated enabled]
+        return String(decoding: data, as: UTF8.self)
+            .split(separator: "\n")
+            .filter { $0.contains(identifier) }
+            .map { line in
+                let version = line.range(of: #"\([^)]*\)"#, options: .regularExpression)
+                    .map { String(line[$0].dropFirst().dropLast()) } ?? "?"
+                let state = line.range(of: #"\[[^\]]*\]"#, options: .regularExpression)
+                    .map { String(line[$0]) } ?? "?"
+                return "\(version) \(state)"
+            }
+    }
+
     func openApprovalSettings() {
         let candidates: [String]
         if #available(macOS 15, *) {
@@ -78,6 +140,7 @@ final class ExtensionManager: NSObject {
         case .completed:
             status = .active
             log.info("Camera extension active")
+            refreshSystemRecords()
         case .willCompleteAfterReboot:
             status = .rebootRequired
         @unknown default:
@@ -114,7 +177,15 @@ extension ExtensionManager: OSSystemExtensionRequestDelegate {
         -> OSSystemExtensionRequest.ReplacementAction {
         // Always install the copy bundled with this app so the extension and
         // the app speak the same protocol.
-        .replace
+        let from = existing.bundleVersion
+        let to = ext.bundleVersion
+        DispatchQueue.main.async {
+            MainActor.assumeIsolated {
+                self.replacedDuringThisRun = true
+                self.log.notice("Replacing camera extension \(from, privacy: .public) with \(to, privacy: .public)")
+            }
+        }
+        return .replace
     }
 
     nonisolated func requestNeedsUserApproval(_ request: OSSystemExtensionRequest) {

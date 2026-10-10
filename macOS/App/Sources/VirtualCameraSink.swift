@@ -19,10 +19,24 @@ final class VirtualCameraSink: @unchecked Sendable {
         case failed(String)
     }
 
+    /// What the menu's diagnostics section shows.
+    struct Diagnostics: Equatable {
+        var state: State = .searching
+        /// Raw value of the extension's demand property: "1", "0", or nil
+        /// when it can't be read.
+        var demandProperty: String?
+        /// Last demand state received via Darwin notification, nil if none.
+        var demandNotification: Bool?
+        var framesPerSecond = 0
+        var droppedFrames = 0
+    }
+
     /// Main queue.
     var onStateChange: ((State) -> Void)?
     /// Main queue. True while at least one app reads the virtual camera.
     var onDemandChange: ((Bool) -> Void)?
+    /// Main queue, about once per second.
+    var onDiagnostics: ((Diagnostics) -> Void)?
 
     private let log = Logger(subsystem: "app.icam.mac", category: "sink")
     private let queue = DispatchQueue(label: "app.icam.sink", qos: .userInteractive)
@@ -39,12 +53,19 @@ final class VirtualCameraSink: @unchecked Sendable {
     private var devicesListenerInstalled = false
     private var state: State = .searching
     private var pollTicks = 0
-
-    private(set) var droppedFrames = 0
+    private var propertyDemand = false
+    /// Darwin-notification demand is a lease kept alive by the extension's
+    /// heartbeat, so a lost "off" can't keep the iPhone camera on forever.
+    private var notificationDemandUntil: CFAbsoluteTime = 0
+    private var diagnostics = Diagnostics()
+    private var framesThisSecond = 0
+    private var droppedFrames = 0
+    private var darwinObserversInstalled = false
 
     // MARK: Lifecycle
 
     func start() {
+        installDarwinObservers()
         queue.async {
             self.installDevicesListener()
             self.connect()
@@ -104,6 +125,8 @@ final class VirtualCameraSink: @unchecked Sendable {
         if CMSimpleQueueEnqueue(bufferQueue, element: element) != noErr {
             Unmanaged<CMSampleBuffer>.fromOpaque(element).release()
             droppedFrames += 1
+        } else {
+            framesThisSecond += 1
         }
     }
 
@@ -184,7 +207,8 @@ final class VirtualCameraSink: @unchecked Sendable {
         sinkStreamID = 0
         bufferQueue = nil
         formatDescription = nil
-        setDemand(false)
+        propertyDemand = false
+        recomputeDemand()
     }
 
     private func findDevice() -> CMIOObjectID? {
@@ -275,9 +299,11 @@ final class VirtualCameraSink: @unchecked Sendable {
                 // Device enumeration is comparatively expensive; the device
                 // list listener covers the common case, this is a fallback.
                 if self.pollTicks % 8 == 0 { self.connect() }
+                self.recomputeDemand()
             } else {
                 self.pollDemand()
             }
+            if self.pollTicks % 4 == 0 { self.publishDiagnostics() }
         }
         timer.resume()
         pollTimer = timer
@@ -285,8 +311,56 @@ final class VirtualCameraSink: @unchecked Sendable {
 
     private func pollDemand() {
         guard sinkStreamID != 0 else { return }
-        let value = Self.stringProperty(sinkStreamID, VirtualCamera.fourCharCode(VirtualCamera.demandSelector))
-        setDemand(value == "1")
+        let selector = VirtualCamera.fourCharCode(VirtualCamera.demandSelector)
+        // The extension publishes demand on both the sink stream and the
+        // device; use whichever this macOS version exposes.
+        let value = Self.stringProperty(sinkStreamID, selector) ?? Self.stringProperty(deviceID, selector)
+        diagnostics.demandProperty = value
+        propertyDemand = value == "1"
+        recomputeDemand()
+    }
+
+    private func recomputeDemand() {
+        let leased = notificationDemandUntil > CFAbsoluteTimeGetCurrent()
+        setDemand(propertyDemand || leased)
+    }
+
+    // MARK: Darwin notifications (second demand channel)
+
+    private func installDarwinObservers() {
+        guard !darwinObserversInstalled else { return }
+        darwinObserversInstalled = true
+        let center = CFNotificationCenterGetDarwinNotifyCenter()
+        let observer = Unmanaged.passUnretained(self).toOpaque()
+        let callback: CFNotificationCallback = { _, observer, name, _, _ in
+            guard let observer, let name else { return }
+            let sink = Unmanaged<VirtualCameraSink>.fromOpaque(observer).takeUnretainedValue()
+            sink.handleDarwinNotification(name.rawValue as String)
+        }
+        for name in [VirtualCamera.demandOnNotification, VirtualCamera.demandOffNotification] {
+            CFNotificationCenterAddObserver(center, observer, callback, name as CFString, nil, .deliverImmediately)
+        }
+    }
+
+    private func handleDarwinNotification(_ name: String) {
+        queue.async {
+            let on = name == VirtualCamera.demandOnNotification
+            self.diagnostics.demandNotification = on
+            // The extension repeats "on" every ~2 s while in use.
+            self.notificationDemandUntil = on ? CFAbsoluteTimeGetCurrent() + 5 : 0
+            if !on { self.propertyDemand = false }
+            self.recomputeDemand()
+        }
+    }
+
+    private func publishDiagnostics() {
+        diagnostics.state = state
+        diagnostics.framesPerSecond = framesThisSecond
+        diagnostics.droppedFrames = droppedFrames
+        framesThisSecond = 0
+        let snapshot = diagnostics
+        let callback = onDiagnostics
+        DispatchQueue.main.async { callback?(snapshot) }
     }
 
     private func setDemand(_ newValue: Bool) {

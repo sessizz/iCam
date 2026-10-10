@@ -38,25 +38,33 @@ if [ -z "$TEAM" ]; then
 fi
 echo "==> Signing with team $TEAM"
 
-LOG="build/install-mac.log"
-mkdir -p build
-echo "==> Building (full log: $LOG)"
+# macOS only replaces an already-active system extension when its version
+# changes, so every install gets a fresh build number.
+BUILD_NUMBER="$(date +%s)"
+
+# Keep build products out of the repository: it may live in a synced folder
+# (iCloud/Google Drive), which slows builds and can break code signing.
+DERIVED="$HOME/Library/Developer/Xcode/DerivedData/iCam-install"
+LOG="$DERIVED/install-mac.log"
+mkdir -p "$DERIVED"
+echo "==> Building build $BUILD_NUMBER (full log: $LOG)"
 if ! xcodebuild \
   -project iCam.xcodeproj \
   -scheme "iCam (macOS)" \
   -configuration Release \
   -destination "generic/platform=macOS" \
-  -derivedDataPath build \
+  -derivedDataPath "$DERIVED" \
   -allowProvisioningUpdates \
   DEVELOPMENT_TEAM="$TEAM" \
   CODE_SIGN_STYLE=Automatic \
+  CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
   build >"$LOG" 2>&1; then
   echo "error: build failed. Errors:" >&2
   grep -E "error:|warning: .*(sign|provision)" "$LOG" | sort -u >&2 || tail -40 "$LOG" >&2
   exit 1
 fi
 
-APP="build/Build/Products/Release/iCam.app"
+APP="$DERIVED/Build/Products/Release/iCam.app"
 EXT="$APP/Contents/Library/SystemExtensions"
 
 # Sanity check: both bundles must carry the same team identifier.
@@ -78,5 +86,8 @@ fi
 rm -rf /Applications/iCam.app
 cp -R "$APP" /Applications/
 open /Applications/iCam.app
-echo "==> Installed /Applications/iCam.app"
+echo "==> Installed /Applications/iCam.app (build $BUILD_NUMBER)"
 echo "    First run: approve the camera extension in System Settings when asked."
+echo "    Video apps that were already open must be restarted to pick up a new extension."
+sleep 3
+systemextensionsctl list 2>/dev/null | grep -i "icam" || true

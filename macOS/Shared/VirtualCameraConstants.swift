@@ -33,6 +33,12 @@ enum VirtualCamera {
     /// while no live video is available.
     static let messageSelector = "iCms"
 
+    /// Darwin notifications posted by the extension as a second, independent
+    /// demand channel (plus a heartbeat while in use), in case the custom
+    /// property can't be read.
+    static let demandOnNotification = "app.icam.virtualcamera.demand.on"
+    static let demandOffNotification = "app.icam.virtualcamera.demand.off"
+
     static func extensionPropertyName(_ selector: String) -> String {
         "4cc_\(selector)_glob_0000"
     }

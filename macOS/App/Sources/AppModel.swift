@@ -20,6 +20,7 @@ final class AppModel {
     /// Some app is reading the virtual camera right now.
     private(set) var cameraInUse = false
     private(set) var stats = StreamStats()
+    private(set) var sinkDiagnostics = VirtualCameraSink.Diagnostics()
     private(set) var cameraAccess = AVCaptureDevice.authorizationStatus(for: .video)
     private(set) var launchAtLogin = SMAppService.mainApp.status == .enabled
 
@@ -71,6 +72,9 @@ final class AppModel {
         }
         sink.onStateChange = { [weak self] state in
             MainActor.assumeIsolated { self?.sinkState = state }
+        }
+        sink.onDiagnostics = { [weak self] diagnostics in
+            MainActor.assumeIsolated { self?.sinkDiagnostics = diagnostics }
         }
         sink.onDemandChange = { [weak self] inUse in
             MainActor.assumeIsolated {
@@ -173,6 +177,48 @@ final class AppModel {
         devices.send(settings: CameraSettings(stabilization: enabled))
     }
 
+    // MARK: Diagnostics
+
+    /// Plain-text snapshot of every stage between a video app and the
+    /// iPhone, shown in the menu and copyable for bug reports.
+    var diagnosticsReport: String {
+        let info = Bundle.main.infoDictionary
+        let version = "\(info?["CFBundleShortVersionString"] ?? "?") (\(info?["CFBundleVersion"] ?? "?"))"
+        let d = sinkDiagnostics
+        let demandProperty = d.demandProperty.map { "\"\($0)\"" } ?? "unreadable"
+        let demandNotification = d.demandNotification.map { $0 ? "on" : "off" } ?? "none yet"
+        let phone: String
+        if let connected = devices.connected {
+            phone = "\(connected.name) (\(connected.model)) via \(connected.transport.displayName)"
+        } else {
+            phone = "\(devices.state)"
+        }
+        var lines = [
+            "iCam \(version), macOS \(ProcessInfo.processInfo.operatingSystemVersionString)",
+            "Extension: \(extensionManager.status)",
+            "Mac camera access: \(cameraAccess.diagnosticName)",
+            "Virtual camera input: \(d.state)",
+            "Demand property: \(demandProperty), notification: \(demandNotification)",
+            "Camera in use by an app: \(cameraInUse ? "yes" : "no"), preview open: \(previewVisible ? "yes" : "no")",
+            "iPhone: \(phone)",
+            "Stream requested: \(devices.isStreaming ? "yes" : "no")",
+        ]
+        if let status = devices.phoneStatus {
+            lines.append("iPhone capturing: \(status.isCapturing ? "yes" : "no")"
+                         + (status.interruption.map { ", \($0)" } ?? ""))
+        }
+        lines.append(String(format: "From iPhone: %.0f fps, %.1f Mbps, %.0f ms RTT",
+                            stats.fps, stats.bitrate / 1_000_000, stats.rttMs))
+        lines.append("To virtual camera: \(d.framesPerSecond) fps, dropped \(d.droppedFrames)")
+        if let error = devices.lastError { lines.append("Last error: \(error)") }
+        return lines.joined(separator: "\n")
+    }
+
+    func copyDiagnostics() {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(diagnosticsReport, forType: .string)
+    }
+
     // MARK: Placeholder
 
     private func updatePlaceholderMessage() {
@@ -201,6 +247,18 @@ final class AppModel {
             return devices.phones.isEmpty
                 ? String(localized: "Open iCam on your iPhone and connect it with a cable or Wi-Fi")
                 : String(localized: "Open iCam on your iPhone")
+        }
+    }
+}
+
+private extension AVAuthorizationStatus {
+    var diagnosticName: String {
+        switch self {
+        case .authorized: return "authorized"
+        case .denied: return "denied"
+        case .restricted: return "restricted"
+        case .notDetermined: return "not determined"
+        @unknown default: return "unknown"
         }
     }
 }

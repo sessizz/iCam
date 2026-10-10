@@ -118,6 +118,19 @@ struct MenuContentView: View {
             }
             .font(.callout)
 
+            DisclosureGroup("Diagnostics") {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(verbatim: model.diagnosticsReport)
+                        .font(.caption2.monospaced())
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button("Copy Diagnostics") { model.copyDiagnostics() }
+                        .buttonStyle(.link)
+                }
+                .padding(.top, 6)
+            }
+            .font(.callout)
+
             HStack {
                 Toggle("Launch at login", isOn: Binding(get: { model.launchAtLogin },
                                                         set: { model.setLaunchAtLogin($0) }))

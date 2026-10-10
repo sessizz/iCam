@@ -67,6 +67,8 @@ MAC = {
     "Open iCam on your iPhone. Connect it with a cable or join the same Wi-Fi.":
         "iPhone'unuzda iCam'i açın. Kabloyla bağlayın ya da aynı Wi-Fi ağına katılın.",
     "Advanced": "Gelişmiş",
+    "Diagnostics": "Tanılama",
+    "Copy Diagnostics": "Tanılamayı Kopyala",
     "Video codec": "Video kodeki",
     "Portrait iPhone": "Dikey iPhone",
     "Fill frame": "Kareyi doldur",

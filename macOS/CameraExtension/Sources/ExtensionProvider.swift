@@ -107,7 +107,8 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
     /// Clients that were allowed to start the source stream; used to recover
     /// the demand state if an app quits or crashes without stopping it.
     private var sourceClientIDs: Set<UUID> = []
-    private var activeFormatIndex = 0
+    private let activeFormat = OSAllocatedUnfairLock(initialState: 0)
+    private var heartbeatTicks = 0
     private var sinkClient: CMIOExtensionClient?
     private var sinkGeneration = 0
     private var sinkRunning = false
@@ -158,7 +159,7 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
     // MARK: CMIOExtensionDeviceSource
 
     var availableProperties: Set<CMIOExtensionProperty> {
-        [.deviceTransportType, .deviceModel]
+        [.deviceTransportType, .deviceModel, demandProperty]
     }
 
     func deviceProperties(forProperties properties: Set<CMIOExtensionProperty>) throws
@@ -170,6 +171,11 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
         if properties.contains(.deviceModel) {
             deviceProperties.model = VirtualCamera.model
         }
+        if properties.contains(demandProperty) {
+            deviceProperties.setPropertyState(
+                CMIOExtensionPropertyState<AnyObject>(value: (isInDemand ? "1" : "0") as NSString),
+                forProperty: demandProperty)
+        }
         return deviceProperties
     }
 
@@ -180,13 +186,19 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
     var isInDemand: Bool { demand.withLock { $0 } }
     var message: String { currentMessage.withLock { $0 } }
 
-    var currentActiveFormatIndex: Int { queue.sync { activeFormatIndex } }
+    /// Lock-protected: read from CMIO callbacks, which must never block on
+    /// `queue` (that queue calls back into CMIO and could deadlock).
+    var currentActiveFormatIndex: Int { activeFormat.withLock { $0 } }
 
     func setActiveFormatIndex(_ index: Int) {
         guard sourceFormats.indices.contains(index) else { return }
+        let changed = activeFormat.withLock { current -> Bool in
+            guard current != index else { return false }
+            current = index
+            return true
+        }
+        guard changed else { return }
         queue.async {
-            guard index != self.activeFormatIndex else { return }
-            self.activeFormatIndex = index
             self.placeholder = nil
             self.outputDescription = nil
         }
@@ -236,8 +248,18 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
 
     private func publishDemand(_ value: Bool) {
         demand.withLock { $0 = value }
+        heartbeatTicks = 0
         let state = CMIOExtensionPropertyState<AnyObject>(value: (value ? "1" : "0") as NSString)
         sinkStream.stream.notifyPropertiesChanged([demandProperty: state])
+        device.notifyPropertiesChanged([demandProperty: state])
+        postDemandNotification(value)
+        log.info("Demand: \(value)")
+    }
+
+    private func postDemandNotification(_ value: Bool) {
+        let name = value ? VirtualCamera.demandOnNotification : VirtualCamera.demandOffNotification
+        CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(),
+                                             CFNotificationName(name as CFString), nil, nil, true)
     }
 
     // MARK: Sink stream (iCam app)
@@ -308,12 +330,13 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
                     self.sinkStream.stream.notifyScheduledOutputChanged(output)
                     self.consumeNext(generation: generation)
                 } else {
-                    // Queue empty (or transient error): look again shortly.
-                    // Poll fast while video is live so frames are picked up
-                    // within a few milliseconds, slowly while idle.
-                    let live = nanoseconds(hostTimeNow()) &- self.lastLiveFrameNanos < 1_000_000_000
-                    let delay: DispatchTimeInterval = error != nil ? .milliseconds(50)
-                        : (live ? .milliseconds(4) : .milliseconds(40))
+                    // Nothing queued (CMIO reports an empty sink queue as an
+                    // error too): look again shortly. Poll fast while some app
+                    // reads the camera so frames are picked up within a few
+                    // milliseconds, slowly otherwise.
+                    _ = error
+                    let delay: DispatchTimeInterval = self.sourceClientCount > 0
+                        ? .milliseconds(4) : .milliseconds(40)
                     self.queue.asyncAfter(deadline: .now() + delay) {
                         self.consumeNext(generation: generation)
                     }
@@ -329,7 +352,7 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
         lastLiveFrameNanos = nanoseconds(hostTimeNow())
         guard sourceClientCount > 0 else { return }
 
-        let size = sourceSizes[activeFormatIndex]
+        let size = sourceSizes[currentActiveFormatIndex]
         if CVPixelBufferGetWidth(pixelBuffer) == size.width,
            CVPixelBufferGetHeight(pixelBuffer) == size.height,
            CVPixelBufferGetPixelFormatType(pixelBuffer) == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange {
@@ -393,12 +416,19 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
     }
 
     private func placeholderTick() {
+        // Heartbeat for the Darwin-notification demand channel (every ~2 s).
+        heartbeatTicks += 1
+        if heartbeatTicks >= VirtualCamera.frameRate * 2 {
+            heartbeatTicks = 0
+            postDemandNotification(true)
+        }
+
         // Live video is flowing (or paused only briefly): keep showing it.
         let now = nanoseconds(hostTimeNow())
         guard now &- lastLiveFrameNanos > 1_000_000_000 else { return }
 
         if placeholder == nil {
-            let size = sourceSizes[activeFormatIndex]
+            let size = sourceSizes[currentActiveFormatIndex]
             placeholder = renderer.render(message: message, width: size.width, height: size.height)
         }
         if let placeholder { send(placeholder) }

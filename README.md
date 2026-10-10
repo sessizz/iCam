@@ -98,6 +98,7 @@ En iyi sonuç için iPhone'u **yatay** ve **arka kamera** Mac'e (size) bakacak �
 
 | Belirti | Çözüm |
 |---|---|
+| `Embedded binary is not signed with the same certificate as the parent app` | Uygulama ile kamera uzantısı farklı takımlarla imzalanmış (genelde Xcode'da takım yalnızca bir hedefe seçildiğinde olur). `Config/Signing.xcconfig` içindeki `DEVELOPMENT_TEAM`'i doldurun ve `./scripts/install-mac.sh` ile derleyin; betik takımı tüm hedeflere uygular. |
 | Menüde “Move iCam to the Applications folder” | Uygulamayı `/Applications`'a kopyalayıp oradan açın. |
 | Kamera uygulamalarda görünmüyor | Uzantının onaylandığını kontrol edin; kamera uygulamasını yeniden başlatın. `systemextensionsctl list` ile durumu görebilirsiniz. |
 | “iPhone bulunamadı” (USB) | iPhone'da iCam açık mı? Kabloyu takıp “Güven”e dokundunuz mu? Finder'da iPhone görünüyor mu? |

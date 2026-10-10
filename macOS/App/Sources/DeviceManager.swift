@@ -264,9 +264,9 @@ final class DeviceManager {
         usbConnectInFlight.insert(key)
         if !asProbe { state = .connecting(displayName(for: device)) }
         let hello = makeHello(.usb)
-        DispatchQueue.global(qos: .userInitiated).async {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let result = Result { try USBMux.connect(to: device, port: ICam.tcpPort) }
-            DispatchQueue.main.async { [weak self] in
+            DispatchQueue.main.async {
                 MainActor.assumeIsolated {
                     self?.usbConnectFinished(result, device: device, key: key, hello: hello, asProbe: asProbe)
                 }

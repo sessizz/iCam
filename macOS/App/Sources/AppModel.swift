@@ -82,8 +82,8 @@ final class AppModel {
         // Starting the virtual camera's input stream goes through the
         // camera privacy check, so ask for access first.
         if cameraAccess == .notDetermined {
-            AVCaptureDevice.requestAccess(for: .video) { _ in
-                DispatchQueue.main.async { [weak self] in
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] _ in
+                DispatchQueue.main.async {
                     MainActor.assumeIsolated {
                         self?.cameraAccess = AVCaptureDevice.authorizationStatus(for: .video)
                         sink.start()

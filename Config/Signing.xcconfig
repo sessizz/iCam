@@ -11,7 +11,7 @@
 //   Mac app           $(BUNDLE_ID_PREFIX).mac
 //   Camera extension  $(BUNDLE_ID_PREFIX).mac.CameraExtension
 
-DEVELOPMENT_TEAM =
+DEVELOPMENT_TEAM = TW9F922D62
 BUNDLE_ID_PREFIX = com.example.icam
 
 MARKETING_VERSION = 1.0

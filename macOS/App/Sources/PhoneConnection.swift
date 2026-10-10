@@ -54,8 +54,8 @@ final class PhoneConnection {
 
     func start() {
         let queue = Self.queue
-        queue.async {
-            self.transport.start(queue: queue, onReady: { [weak self] in
+        queue.async { [self] in
+            transport.start(queue: queue, onReady: { [weak self] in
                 self?.didBecomeReady()
             }, onData: { [weak self] data in
                 self?.receive(data)

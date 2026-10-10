@@ -10,7 +10,8 @@ import AVFoundation
 import CoreMediaIO
 import os
 
-final class VirtualCameraSink {
+/// Internally confined to its own serial queue.
+final class VirtualCameraSink: @unchecked Sendable {
 
     enum State: Equatable {
         case searching

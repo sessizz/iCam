@@ -38,6 +38,8 @@ final class PhoneModel {
     @ObservationIgnored private var statusTask: Task<Void, Never>?
     @ObservationIgnored private var lastSentStatus: PhoneStatus?
     @ObservationIgnored private var started = false
+    /// A start request that arrived before camera access was granted.
+    @ObservationIgnored private var pendingConfig: StreamConfig?
 
     private static let settingsKey = "cameraSettings"
 
@@ -97,7 +99,7 @@ final class PhoneModel {
     }
 
     func didBecomeActive() {
-        cameraAuthorization = AVCaptureDevice.authorizationStatus(for: .video)
+        authorizationChanged()
         server.ensureListening()
         UIApplication.shared.isIdleTimerDisabled = true
     }
@@ -113,8 +115,17 @@ final class PhoneModel {
         guard cameraAuthorization == .notDetermined else { return }
         AVCaptureDevice.requestAccess(for: .video) { _ in
             DispatchQueue.main.async { [weak self] in
-                self?.cameraAuthorization = AVCaptureDevice.authorizationStatus(for: .video)
+                self?.authorizationChanged()
             }
+        }
+    }
+
+    private func authorizationChanged() {
+        cameraAuthorization = AVCaptureDevice.authorizationStatus(for: .video)
+        if cameraAuthorization == .authorized, let config = pendingConfig, host != nil {
+            startStreaming(config)
+        } else {
+            sendStatus()
         }
     }
 
@@ -179,9 +190,11 @@ final class PhoneModel {
     private func startStreaming(_ config: StreamConfig) {
         guard cameraAuthorization == .authorized else {
             log.error("Camera access not granted")
+            pendingConfig = config
             sendStatus(force: true)
             return
         }
+        pendingConfig = nil
         pipeline.start(config: config, settings: settings)
         isStreaming = true
         userInteracted()
@@ -189,6 +202,7 @@ final class PhoneModel {
     }
 
     private func stopStreaming() {
+        pendingConfig = nil
         guard isStreaming else { return }
         pipeline.stop()
         isStreaming = false
@@ -229,7 +243,7 @@ final class PhoneModel {
         let device = UIDevice.current
         var interruption = camera.interruption
         if cameraAuthorization != .authorized {
-            interruption = "Camera access is off. Allow it in iPhone Settings › iCam."
+            interruption = String(localized: "Camera access is off. Allow it in iPhone Settings › iCam.")
         }
         return PhoneStatus(
             lenses: camera.lenses,

@@ -58,7 +58,7 @@ final class PeerServer {
     private var txtRecord = NWTXTRecord()
     private var pending: [ObjectIdentifier: PeerConnection] = [:]
     private var active: PeerConnection?
-    private let activeForSending = OSAllocatedUnfairLock<PeerConnection?>(initialState: nil)
+    private let activeForSending = OSAllocatedUnfairLock<PeerConnection?>(uncheckedState: nil)
     private var livenessTimer: DispatchSourceTimer?
     private var isRunning = false
     private var listenerReady: [TransportKind: Bool] = [:]
@@ -95,7 +95,7 @@ final class PeerServer {
 
     /// Sends bytes to the active Mac. Safe from any thread.
     func send(_ data: Data) {
-        activeForSending.withLock { $0 }?.send(data)
+        activeForSending.withLockUnchecked { $0 }?.send(data)
     }
 
     func send(_ message: ControlMessage) {
@@ -275,7 +275,7 @@ final class PeerServer {
 
     private func setActive(_ peer: PeerConnection?) {
         active = peer
-        activeForSending.withLock { $0 = peer }
+        activeForSending.withLockUnchecked { $0 = peer }
     }
 
     private func startLivenessTimer() {

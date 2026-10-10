@@ -62,7 +62,7 @@ final class CameraCapture: NSObject {
     }
 
     deinit {
-        notificationTokens.forEach(NotificationCenter.default.removeObserver)
+        notificationTokens.forEach { NotificationCenter.default.removeObserver($0) }
     }
 
     func snapshot() -> Snapshot { state.withLock { $0 } }
@@ -128,16 +128,16 @@ final class CameraCapture: NSObject {
             let label: String
             switch id {
             case Self.lensUltraWide:
-                name = "Ultra Wide"
+                name = String(localized: "Ultra Wide")
                 label = Self.zoomLabel(fov: format?.videoFieldOfView, reference: referenceFOV, fallback: 0.5)
             case Self.lensWide:
-                name = "Wide"
+                name = String(localized: "Wide")
                 label = "1×"
             case Self.lensTelephoto:
-                name = "Telephoto"
+                name = String(localized: "Telephoto")
                 label = Self.zoomLabel(fov: format?.videoFieldOfView, reference: referenceFOV, fallback: 2)
             default:
-                name = "Front"
+                name = String(localized: "Front")
                 label = "Front"
             }
             return LensInfo(id: id, name: name, label: label, maxZoom: maxZoom)
@@ -187,7 +187,7 @@ final class CameraCapture: NSObject {
         isConfigured = true
 
         session.beginConfiguration()
-        session.automaticallyConfiguresCaptureDeviceWideColor = false
+        session.automaticallyConfiguresCaptureDeviceForWideColor = false
 
         videoOutput.videoSettings = [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
@@ -235,7 +235,7 @@ final class CameraCapture: NSObject {
             : (lensDevices[Self.lensWide] != nil ? Self.lensWide : lensDevices.keys.first)
         guard let id, let device = lensDevices[id] else {
             log.error("No camera available")
-            updateState { $0.interruption = "No camera available" }
+            updateState { $0.interruption = String(localized: "No camera available") }
             return
         }
 
@@ -374,11 +374,11 @@ final class CameraCapture: NSObject {
             let reason = reasonValue.flatMap(AVCaptureSession.InterruptionReason.init(rawValue:))
             let text: String
             switch reason {
-            case .videoDeviceNotAvailableInBackground: text = "iCam is in the background"
-            case .videoDeviceInUseByAnotherClient: text = "Camera is in use by another app"
-            case .videoDeviceNotAvailableWithMultipleForegroundApps: text = "Camera unavailable in Split View"
-            case .videoDeviceNotAvailableDueToSystemPressure: text = "iPhone is too hot"
-            default: text = "Camera interrupted"
+            case .videoDeviceNotAvailableInBackground: text = String(localized: "iCam is in the background")
+            case .videoDeviceInUseByAnotherClient: text = String(localized: "Camera is in use by another app")
+            case .videoDeviceNotAvailableWithMultipleForegroundApps: text = String(localized: "Camera unavailable in Split View")
+            case .videoDeviceNotAvailableDueToSystemPressure: text = String(localized: "iPhone is too hot")
+            default: text = String(localized: "Camera interrupted")
             }
             self?.updateState { $0.interruption = text }
         })

@@ -228,7 +228,7 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
 
     private func publishDemand(_ value: Bool) {
         demand.withLock { $0 = value }
-        let state = CMIOExtensionPropertyState(value: (value ? "1" : "0") as NSString)
+        let state = CMIOExtensionPropertyState<AnyObject>(value: (value ? "1" : "0") as NSString)
         sinkStream.stream.notifyPropertiesChanged([demandProperty: state])
     }
 
@@ -464,18 +464,18 @@ final class SinkStream: NSObject, CMIOExtensionStreamSource {
             streamProperties.frameDuration = device.frameDuration
         }
         if properties.contains(.streamSinkBufferQueueSize) {
-            streamProperties.sinkBufferQueueSize = VirtualCamera.sinkQueueSize
+            streamProperties.sinkBufferQueueSize = Int(VirtualCamera.sinkQueueSize)
         }
         if properties.contains(.streamSinkBuffersRequiredForStartup) {
             streamProperties.sinkBuffersRequiredForStartup = 1
         }
         if properties.contains(demandProperty) {
             streamProperties.setPropertyState(
-                CMIOExtensionPropertyState(value: (device.isInDemand ? "1" : "0") as NSString),
+                CMIOExtensionPropertyState<AnyObject>(value: (device.isInDemand ? "1" : "0") as NSString),
                 forProperty: demandProperty)
         }
         if properties.contains(messageProperty) {
-            streamProperties.setPropertyState(CMIOExtensionPropertyState(value: device.message as NSString),
+            streamProperties.setPropertyState(CMIOExtensionPropertyState<AnyObject>(value: device.message as NSString),
                                               forProperty: messageProperty)
         }
         return streamProperties

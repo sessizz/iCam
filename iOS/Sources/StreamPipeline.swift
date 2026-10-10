@@ -136,6 +136,7 @@ final class StreamPipeline: CameraCaptureDelegate {
     func cameraCapture(_ capture: CameraCapture, didOutput pixelBuffer: CVPixelBuffer,
                        presentationTime: CMTime) {
         let now = CACurrentMediaTime()
+        let maxFramesInFlight = self.maxFramesInFlight
         let shouldEncode = state.withLock { s -> Bool in
             guard s.isStreaming else { return false }
             let inFlight = s.lastSentSequence &- s.lastAckedSequence
@@ -160,12 +161,9 @@ final class StreamPipeline: CameraCaptureDelegate {
     private func deliver(_ frame: EncodedFrame) {
         guard let send else { return }
         let now = CACurrentMediaTime()
-        var bytes = frame.message.count
-        if let format = frame.format {
-            let formatMessage = MessageFramer.frame(.videoFormat, payload: format.encoded())
-            bytes += formatMessage.count
-            send(formatMessage)
-        }
+        let formatMessage = frame.format.map { MessageFramer.frame(.videoFormat, payload: $0.encoded()) }
+        let bytes = frame.message.count + (formatMessage?.count ?? 0)
+        if let formatMessage { send(formatMessage) }
         state.withLock { s in
             s.lastSentSequence = frame.sequence
             s.sendTimes[frame.sequence] = now
@@ -178,8 +176,8 @@ final class StreamPipeline: CameraCaptureDelegate {
     /// Runs once per second on the capture queue: bitrate adaptation + stats.
     private func evaluateWindow(now: CFTimeInterval) {
         let thermal = ProcessInfo.processInfo.thermalState
-        var newBitrate: Int?
-        let stats: PipelineStats? = state.withLock { s in
+        let minBitrate = self.minBitrate
+        let result: (stats: PipelineStats, newBitrate: Int?)? = state.withLock { s in
             guard s.isStreaming, let config = s.config else { return nil }
             let elapsed = now - s.windowStart
             guard elapsed >= 1 else { return nil }
@@ -200,6 +198,7 @@ final class StreamPipeline: CameraCaptureDelegate {
                 target = min(ceiling, Int(Double(target) * 1.08) + 100_000)
             }
             target = min(target, ceiling)
+            var newBitrate: Int?
             if target != s.targetBitrate {
                 s.targetBitrate = target
                 newBitrate = target
@@ -216,13 +215,14 @@ final class StreamPipeline: CameraCaptureDelegate {
             s.framesDropped = 0
             s.latencySum = 0
             s.latencyCount = 0
-            return stats
+            return (stats, newBitrate)
         }
-        if let newBitrate {
+        guard let result else { return }
+        if let newBitrate = result.newBitrate {
             encoder.setBitrate(newBitrate)
             log.info("Bitrate → \(newBitrate)")
         }
-        if let stats { onStats?(stats) }
+        onStats?(result.stats)
     }
 
     var currentBitrate: Int { state.withLock { $0.targetBitrate } }

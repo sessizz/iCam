@@ -11,12 +11,12 @@ import os
 
 final class PreviewFeed {
     private let state = OSAllocatedUnfairLock<(active: Bool, layer: AVSampleBufferDisplayLayer?)>(
-        initialState: (false, nil))
+        uncheckedState: (false, nil))
 
     var isActive: Bool {
-        get { state.withLock { $0.active } }
+        get { state.withLockUnchecked { $0.active } }
         set {
-            let layer = state.withLock { s -> AVSampleBufferDisplayLayer? in
+            let layer = state.withLockUnchecked { s -> AVSampleBufferDisplayLayer? in
                 s.active = newValue
                 return s.layer
             }
@@ -27,12 +27,12 @@ final class PreviewFeed {
     }
 
     func attach(_ layer: AVSampleBufferDisplayLayer?) {
-        state.withLock { $0.layer = layer }
+        state.withLockUnchecked { $0.layer = layer }
     }
 
     /// Called on the video pipeline queue.
     func enqueue(_ pixelBuffer: CVPixelBuffer) {
-        guard let layer = state.withLock({ $0.active ? $0.layer : nil }) else { return }
+        guard let layer = state.withLockUnchecked({ $0.active ? $0.layer : nil }) else { return }
 
         var description: CMVideoFormatDescription?
         CMVideoFormatDescriptionCreateForImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: pixelBuffer,

@@ -23,6 +23,8 @@ final class PhoneModel {
     private(set) var wifiStatus: ListenerStatus = .starting
     private(set) var camera = CameraCapture.Snapshot()
     private(set) var stats = PipelineStats()
+    /// Frames the congestion control dropped since the last status message.
+    @ObservationIgnored private var droppedSinceStatus = 0
     private(set) var cameraAuthorization = AVCaptureDevice.authorizationStatus(for: .video)
     var isDimmed = false
     private(set) var deviceName: String = DeviceIdentity.deviceName
@@ -68,7 +70,10 @@ final class PhoneModel {
             DispatchQueue.main.async { self?.cameraStateChanged() }
         }
         pipeline.onStats = { [weak self] stats in
-            DispatchQueue.main.async { self?.stats = stats }
+            DispatchQueue.main.async {
+                self?.stats = stats
+                self?.droppedSinceStatus += stats.droppedFrames
+            }
         }
 
         UIDevice.current.isBatteryMonitoringEnabled = true
@@ -197,7 +202,7 @@ final class PhoneModel {
             return
         }
         pendingConfig = nil
-        pipeline.start(config: config, settings: settings)
+        pipeline.start(config: config, settings: settings, transport: host?.transport ?? .wifi)
         isStreaming = true
         userInteracted()
         sendStatus(force: true)
@@ -259,7 +264,10 @@ final class PhoneModel {
             batteryLevel: device.batteryLevel,
             isCharging: device.batteryState == .charging || device.batteryState == .full,
             thermalState: ProcessInfo.processInfo.thermalState.rawValue,
-            bitrate: pipeline.currentBitrate)
+            bitrate: pipeline.currentBitrate,
+            roundTripMs: isStreaming ? Int(stats.latencyMs.rounded()) : nil,
+            queueDelayMs: isStreaming ? Int(stats.queueDelayMs.rounded()) : nil,
+            droppedFrames: isStreaming ? droppedSinceStatus : nil)
     }
 
     private func sendStatus(force: Bool = false) {
@@ -267,6 +275,7 @@ final class PhoneModel {
         let status = currentStatus()
         guard force || status != lastSentStatus else { return }
         lastSentStatus = status
+        droppedSinceStatus = 0
         server.send(.status(status))
     }
 }

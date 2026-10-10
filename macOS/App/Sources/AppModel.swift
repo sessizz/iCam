@@ -328,9 +328,14 @@ final class AppModel {
         if let status = devices.phoneStatus {
             lines.append("iPhone capturing: \(status.isCapturing ? "yes" : "no")"
                          + (status.interruption.map { ", \($0)" } ?? ""))
+            var link = String(format: "iPhone link: target %.1f Mbps", Double(status.bitrate) / 1_000_000)
+            if let rtt = status.roundTripMs { link += ", frame round trip \(rtt) ms" }
+            if let queue = status.queueDelayMs { link += ", queueing \(queue) ms" }
+            if let dropped = status.droppedFrames { link += ", dropped \(dropped) frame(s) in ~5 s" }
+            lines.append(link)
         }
-        lines.append(String(format: "From iPhone: %.0f fps, %.1f Mbps, %.0f ms RTT",
-                            stats.fps, stats.bitrate / 1_000_000, stats.rttMs))
+        lines.append(String(format: "From iPhone: %.0f fps, %.1f Mbps, %.0f ms RTT, playout buffer %.0f ms",
+                            stats.fps, stats.bitrate / 1_000_000, stats.rttMs, stats.playoutDelayMs))
         lines.append("To virtual camera: \(d.framesPerSecond) fps, dropped \(d.droppedFrames)")
         if !d.lastAttempt.isEmpty {
             lines.append("Input attempt: \(d.lastAttempt.joined(separator: "; "))")

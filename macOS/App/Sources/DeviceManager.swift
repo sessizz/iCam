@@ -179,7 +179,9 @@ final class DeviceManager {
     // MARK: Streaming
 
     private func streamConfig(for transport: TransportKind) -> StreamConfig {
-        let (start, max): (Int, Int) = transport == .usb ? (14_000_000, 20_000_000) : (8_000_000, 12_000_000)
+        // Wi-Fi starts a little lower; the iPhone's delay-based controller
+        // raises it while the link keeps up.
+        let (start, max): (Int, Int) = transport == .usb ? (14_000_000, 20_000_000) : (10_000_000, 16_000_000)
         let factor = codec == .hevc ? 0.7 : 1.0
         return StreamConfig(width: VirtualCamera.width, height: VirtualCamera.height, fps: VirtualCamera.frameRate,
                             codec: codec, bitrate: Int(Double(start) * factor),

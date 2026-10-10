@@ -6,6 +6,9 @@
 //    synthetic camera frames → VideoEncoder (iPhone) → framed wire bytes
 //      → MessageParser → VideoDecoder (Mac) → FrameConformer (1920×1080)
 //
+//  plus the Mac's playout buffer, which must turn bursty Wi-Fi arrival back
+//  into an even frame pace.
+//
 //  Run (macOS):
 //    swiftc -parse-as-library Shared/*.swift macOS/Shared/*.swift \
 //      iOS/Sources/VideoEncoder.swift macOS/App/Sources/VideoDecoder.swift \
@@ -33,6 +36,7 @@ enum PipelineTests {
 
     static func main() {
         placeholder()
+        playout()
         expect(VirtualCamera.fourCharCode("iCdm") == 0x6943_646D, "four char code")
         expect(VirtualCamera.extensionPropertyName("iCdm") == "4cc_iCdm_glob_0000", "property name")
         for codec in VideoCodec.allCases {
@@ -81,6 +85,57 @@ enum PipelineTests {
             expect(corner < 60, "placeholder background is dark (\(corner))")
             print("placeholder \(width)x\(height): \(bright) bright samples, background luma \(corner)")
         }
+    }
+
+    // MARK: Playout buffer
+
+    /// Every 10th frame stalls for 90 ms and the frames queued behind it
+    /// arrive together (TCP head-of-line blocking over Wi-Fi). Once the
+    /// buffer has seen a stall, frames must leave at an even pace again.
+    static func playout() {
+        let buffer = PlayoutBuffer()
+        let total = 90
+        let lock = NSLock()
+        var outputs: [CFTimeInterval] = []
+        let done = DispatchSemaphore(value: 0)
+        buffer.output = { _ in
+            lock.lock()
+            outputs.append(CACurrentMediaTime())
+            let count = outputs.count
+            lock.unlock()
+            if count == total { done.signal() }
+        }
+        let pixel = makeFrame(width: 64, height: 64, index: 0)
+        let start = CACurrentMediaTime() + 0.05
+        let phoneClockOffset = 12_345.0 // the iPhone's clock differs from the Mac's
+        var previousArrival = 0.0
+        var arrivals: [CFTimeInterval] = []
+        for index in 0..<total {
+            let capture = Double(index) / 30
+            let nominal = start + capture + 0.02 + (index % 10 == 0 ? 0.09 : 0)
+            let arrival = max(nominal, previousArrival)
+            previousArrival = arrival
+            let wait = arrival - CACurrentMediaTime()
+            if wait > 0 { usleep(useconds_t(wait * 1_000_000)) }
+            arrivals.append(CACurrentMediaTime())
+            buffer.enqueue(pixel, captureTime: capture + phoneClockOffset, arrival: CACurrentMediaTime())
+        }
+        guard done.wait(timeout: .now() + 3) == .success else {
+            expect(false, "playout: \(outputs.count)/\(total) frames came out")
+            return
+        }
+        func maxGap(_ times: [CFTimeInterval]) -> Double {
+            zip(times, times.dropFirst()).map { $1 - $0 }.max() ?? 0
+        }
+        let inputGap = maxGap(Array(arrivals[15...]))
+        let outputGap = maxGap(Array(outputs[15...]))
+        let pace = (outputs[total - 1] - outputs[15]) / Double(total - 1 - 15)
+        print(String(format: "playout: largest gap %.0f ms in, %.0f ms out; %.1f ms per frame; delay %.0f ms",
+                     inputGap * 1000, outputGap * 1000, pace * 1000, buffer.currentDelay * 1000))
+        expect(inputGap > 0.1, "playout: the test produces stalls")
+        expect(outputGap < 0.065, "playout: even pace after stalls (largest gap \(Int(outputGap * 1000)) ms)")
+        expect(abs(pace - 1.0 / 30) < 0.004, "playout: 30 fps pace")
+        expect(buffer.currentDelay <= PlayoutBuffer.maxDelay + 0.001, "playout: delay is capped")
     }
 
     // MARK: Synthetic frames

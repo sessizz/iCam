@@ -24,6 +24,8 @@ struct StreamStats: Equatable {
     var fps: Double = 0
     var bitrate: Double = 0
     var rttMs: Double = 0
+    /// Delay the playout buffer currently adds to smooth out arrival jitter.
+    var playoutDelayMs: Double = 0
     var width = 0
     var height = 0
     var codec: VideoCodec?
@@ -71,6 +73,108 @@ final class FrameConformer {
     }
 }
 
+/// Releases decoded frames at the iPhone's capture cadence.
+///
+/// Wi-Fi delivers frames in bursts (power saving, retransmissions, other
+/// traffic); showing each frame the moment it arrives makes motion stutter
+/// even when no frame is lost. Every frame is held until its capture time
+/// plus the fastest recent transit plus the link's recent jitter (90th
+/// percentile over 4 s, at most 100 ms). Over USB that is a millisecond or
+/// two; frames that come later than that are shown immediately.
+final class PlayoutBuffer: @unchecked Sendable {
+    /// Called on the buffer's own serial queue, in capture order.
+    var output: ((CVPixelBuffer) -> Void)?
+
+    static let window: CFTimeInterval = 4
+    static let maxDelay: CFTimeInterval = 0.1
+
+    private let queue = DispatchQueue(label: "app.icam.playout", qos: .userInteractive)
+    private let delayLock = OSAllocatedUnfairLock(initialState: 0.0)
+
+    // Confined to `queue`.
+    private var history: [(arrival: CFTimeInterval, transit: CFTimeInterval)] = []
+    private var delay: CFTimeInterval = 0
+    private var lastDue: CFTimeInterval = 0
+    private var pending: [(due: CFTimeInterval, buffer: CVPixelBuffer)] = []
+    private var timer: DispatchSourceTimer?
+
+    /// The delay currently added, in seconds. Any queue.
+    var currentDelay: CFTimeInterval { delayLock.withLock { $0 } }
+
+    /// `captureTime` is on the iPhone's clock and `arrival` on this Mac's
+    /// (CACurrentMediaTime); only differences between frames matter.
+    func enqueue(_ buffer: CVPixelBuffer, captureTime: CFTimeInterval, arrival: CFTimeInterval) {
+        queue.async { self.schedule(buffer, captureTime: captureTime, arrival: arrival) }
+    }
+
+    /// Forgets the link's timing (new stream or transport); frames still
+    /// waiting are shown right away.
+    func reset() {
+        queue.async {
+            self.history.removeAll()
+            self.delay = 0
+            self.lastDue = 0
+            self.delayLock.withLock { $0 = 0 }
+            let waiting = self.pending
+            self.pending.removeAll()
+            for item in waiting { self.output?(item.buffer) }
+            self.timer?.schedule(deadline: .distantFuture)
+        }
+    }
+
+    private func schedule(_ buffer: CVPixelBuffer, captureTime: CFTimeInterval, arrival: CFTimeInterval) {
+        let transit = arrival - captureTime
+        history.append((arrival, transit))
+        while let first = history.first, arrival - first.arrival > Self.window {
+            history.removeFirst()
+        }
+        let transits = history.map(\.transit).sorted()
+        let fastest = transits[0]
+        let jitter = transits[min(transits.count - 1, transits.count * 9 / 10)] - fastest
+        let wanted = min(Self.maxDelay, max(0, jitter))
+        // Grow at once (protect against the next burst), shrink slowly so
+        // the delay doesn't oscillate.
+        delay = wanted > delay ? wanted : delay * 0.98 + wanted * 0.02
+        let currentDelay = delay
+        delayLock.withLock { $0 = currentDelay }
+
+        // Never reorder, even when the estimate moves.
+        let due = max(captureTime + fastest + delay, lastDue)
+        lastDue = due
+        if pending.isEmpty, due <= CACurrentMediaTime() + 0.001 {
+            output?(buffer)
+            return
+        }
+        pending.append((due, buffer))
+        armTimer()
+    }
+
+    private func armTimer() {
+        if timer == nil {
+            let timer = DispatchSource.makeTimerSource(flags: .strict, queue: queue)
+            timer.setEventHandler { [weak self] in self?.fire() }
+            timer.schedule(deadline: .distantFuture)
+            timer.resume()
+            self.timer = timer
+        }
+        guard let head = pending.first else {
+            timer?.schedule(deadline: .distantFuture)
+            return
+        }
+        let wait = max(0, head.due - CACurrentMediaTime())
+        timer?.schedule(deadline: .now() + wait, leeway: .milliseconds(1))
+    }
+
+    private func fire() {
+        let now = CACurrentMediaTime()
+        while let head = pending.first, head.due <= now + 0.001 {
+            pending.removeFirst()
+            output?(head.buffer)
+        }
+        armTimer()
+    }
+}
+
 /// Confined to `PhoneConnection.queue` (only `framing` is touched from
 /// elsewhere, behind a lock).
 final class VideoPipeline: @unchecked Sendable {
@@ -90,6 +194,7 @@ final class VideoPipeline: @unchecked Sendable {
     private let log = Logger(subsystem: "app.icam.mac", category: "pipeline")
     private let decoder = VideoDecoder()
     private let conformer = FrameConformer()
+    private let playout = PlayoutBuffer()
     private var codec: VideoCodec?
     private var sourceWidth = 0
     private var sourceHeight = 0
@@ -99,14 +204,24 @@ final class VideoPipeline: @unchecked Sendable {
     private var bytesInWindow = 0
     private var lastRTT: Double = 0
 
+    init() {
+        playout.output = { [weak self] buffer in
+            self?.cameraOutput?(buffer)
+            self?.previewOutput?(buffer)
+        }
+    }
+
     func reset() {
         decoder.reset()
+        playout.reset()
         codec = nil
         publishStats(force: true, idle: true)
     }
 
+    /// Called when a (possibly different) connection starts feeding frames.
     func requireKeyFrame() {
         decoder.requireKeyFrame()
+        playout.reset()
     }
 
     func handleFormat(_ packet: VideoFormatPacket) {
@@ -125,8 +240,8 @@ final class VideoPipeline: @unchecked Sendable {
             sourceHeight = CVPixelBufferGetHeight(buffer)
             framesInWindow += 1
             if let conformed = conformer.conform(buffer, framing: framing) {
-                cameraOutput?(conformed)
-                previewOutput?(conformed)
+                playout.enqueue(conformed, captureTime: Double(frame.captureTimeMicros) / 1_000_000,
+                                arrival: CACurrentMediaTime())
             }
             return true
         case .needsKeyFrame:
@@ -148,6 +263,7 @@ final class VideoPipeline: @unchecked Sendable {
             fps: Double(framesInWindow) / max(elapsed, 0.001),
             bitrate: Double(bytesInWindow * 8) / max(elapsed, 0.001),
             rttMs: lastRTT * 1000,
+            playoutDelayMs: playout.currentDelay * 1000,
             width: sourceWidth, height: sourceHeight, codec: codec)
         windowStart = now
         framesInWindow = 0

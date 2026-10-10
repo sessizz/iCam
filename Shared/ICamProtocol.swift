@@ -150,6 +150,13 @@ struct PhoneStatus: Codable, Equatable {
     /// `ProcessInfo.ThermalState.rawValue`
     var thermalState: Int
     var bitrate: Int
+    /// Link health seen by the iPhone's congestion control (optional so
+    /// older builds on either side still understand each other): median
+    /// frame round trip and queueing delay in the last second, and camera
+    /// frames dropped before encoding since the previous status.
+    var roundTripMs: Int? = nil
+    var queueDelayMs: Int? = nil
+    var droppedFrames: Int? = nil
 }
 
 struct PingMessage: Codable {

@@ -32,6 +32,7 @@ final class AppModel {
     @ObservationIgnored private let sink = VirtualCameraSink()
     @ObservationIgnored private let log = Logger(subsystem: "app.icam.mac", category: "app")
     @ObservationIgnored private var previewVisible = false
+    @ObservationIgnored private var searchingSince: Date?
     @ObservationIgnored private var messageTimer: Timer?
     @ObservationIgnored private var started = false
     @ObservationIgnored private let defaults = UserDefaults.standard
@@ -102,7 +103,10 @@ final class AppModel {
         devices.start()
 
         messageTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.updatePlaceholderMessage() }
+            MainActor.assumeIsolated {
+                self?.updatePlaceholderMessage()
+                self?.relaunchIfCameraInvisible()
+            }
         }
         updatePlaceholderMessage()
     }
@@ -178,6 +182,43 @@ final class AppModel {
         devices.send(settings: CameraSettings(stabilization: enabled))
     }
 
+    // MARK: Self relaunch
+
+    private static let lastRelaunchKey = "lastRelaunchForMissingCamera"
+
+    /// macOS doesn't show a camera extension to a process that was already
+    /// running when the extension was activated or updated (it appears only
+    /// after a relaunch). If the extension is active but its device stays
+    /// invisible, relaunch once (at most every 10 minutes).
+    private func relaunchIfCameraInvisible() {
+        guard extensionManager.status == .active, sinkState == .searching else {
+            searchingSince = nil
+            return
+        }
+        let now = Date()
+        guard let since = searchingSince else {
+            searchingSince = now
+            return
+        }
+        guard now.timeIntervalSince(since) > 4 else { return }
+        let last = defaults.double(forKey: Self.lastRelaunchKey)
+        guard now.timeIntervalSince1970 - last > 600 else { return }
+        defaults.set(now.timeIntervalSince1970, forKey: Self.lastRelaunchKey)
+        log.notice("Virtual camera not visible to this process; relaunching")
+        relaunch()
+    }
+
+    func relaunch() {
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.createsNewApplicationInstance = true
+        configuration.activates = false
+        NSWorkspace.shared.openApplication(at: Bundle.main.bundleURL, configuration: configuration) { _, error in
+            DispatchQueue.main.async {
+                if error == nil { NSApp.terminate(nil) }
+            }
+        }
+    }
+
     // MARK: Diagnostics
 
     /// Plain-text snapshot of every stage between a video app and the
@@ -199,6 +240,8 @@ final class AppModel {
             "Extension: \(extensionManager.status)",
             "Mac camera access: \(cameraAccess.diagnosticName)",
             "Virtual camera input: \(d.state)",
+            "AVFoundation sees iCam camera: \(d.avFoundationSeesCamera ? "yes" : "no")",
+            "CoreMediaIO devices: \(d.cmioDevices.isEmpty ? "none" : d.cmioDevices.joined(separator: ", "))",
             "Demand property: \(demandProperty), notification: \(demandNotification)",
             "Camera in use by an app: \(cameraInUse ? "yes" : "no"), preview open: \(previewVisible ? "yes" : "no")",
             "iPhone: \(phone)",

@@ -29,6 +29,10 @@ final class VirtualCameraSink: @unchecked Sendable {
         var demandNotification: Bool?
         var framesPerSecond = 0
         var droppedFrames = 0
+        /// Whether AVFoundation lists the iCam camera in this process.
+        var avFoundationSeesCamera = false
+        /// Names of all CoreMediaIO devices visible to this process.
+        var cmioDevices: [String] = []
     }
 
     /// Main queue.
@@ -61,11 +65,18 @@ final class VirtualCameraSink: @unchecked Sendable {
     private var framesThisSecond = 0
     private var droppedFrames = 0
     private var darwinObserversInstalled = false
+    private var avObserver: NSObjectProtocol?
 
     // MARK: Lifecycle
 
     func start() {
         installDarwinObservers()
+        // A camera extension that becomes available later shows up as a newly
+        // connected AVCaptureDevice; use that as a cue to look again.
+        avObserver = NotificationCenter.default.addObserver(
+            forName: AVCaptureDevice.wasConnectedNotification, object: nil, queue: nil) { [weak self] _ in
+            self?.refresh()
+        }
         queue.async {
             self.installDevicesListener()
             self.connect()
@@ -211,11 +222,29 @@ final class VirtualCameraSink: @unchecked Sendable {
         recomputeDemand()
     }
 
+    /// Looks the camera up through AVFoundation first. Besides giving us the
+    /// device's unique ID, this makes the process load CoreMediaIO extension
+    /// devices; without it the C API can return an empty device list.
+    private func findAVFoundationCamera() -> AVCaptureDevice? {
+        let types: [AVCaptureDevice.DeviceType] = [.external]
+        let devices = AVCaptureDevice.DiscoverySession(deviceTypes: types, mediaType: .video,
+                                                       position: .unspecified).devices
+        let wanted = VirtualCamera.deviceUUID.uuidString
+        return devices.first { $0.uniqueID.caseInsensitiveCompare(wanted) == .orderedSame }
+            ?? devices.first { $0.localizedName == VirtualCamera.deviceName }
+    }
+
     private func findDevice() -> CMIOObjectID? {
+        let avCamera = findAVFoundationCamera()
+        diagnostics.avFoundationSeesCamera = avCamera != nil
+        var wantedUIDs = [VirtualCamera.deviceUUID.uuidString.uppercased()]
+        if let uid = avCamera?.uniqueID.uppercased(), !wantedUIDs.contains(uid) { wantedUIDs.append(uid) }
+
         var address = Self.address(CMIOObjectPropertySelector(kCMIOHardwarePropertyDevices))
         let system = CMIOObjectID(kCMIOObjectSystemObject)
         var dataSize: UInt32 = 0
         guard CMIOObjectGetPropertyDataSize(system, &address, 0, nil, &dataSize) == noErr, dataSize > 0 else {
+            diagnostics.cmioDevices = []
             return nil
         }
         var devices = [CMIOObjectID](repeating: 0, count: Int(dataSize) / MemoryLayout<CMIOObjectID>.size)
@@ -224,19 +253,23 @@ final class VirtualCameraSink: @unchecked Sendable {
             return nil
         }
 
-        let wantedUID = VirtualCamera.deviceUUID.uuidString
         var nameMatch: CMIOObjectID?
+        var uidMatch: CMIOObjectID?
+        var names: [String] = []
         for device in devices {
-            if let uid = Self.stringProperty(device, CMIOObjectPropertySelector(kCMIODevicePropertyDeviceUID)),
-               uid.caseInsensitiveCompare(wantedUID) == .orderedSame {
-                return device
+            let name = Self.stringProperty(device, CMIOObjectPropertySelector(kCMIOObjectPropertyName))
+            names.append(name ?? "?")
+            if uidMatch == nil,
+               let uid = Self.stringProperty(device, CMIOObjectPropertySelector(kCMIODevicePropertyDeviceUID)),
+               wantedUIDs.contains(uid.uppercased()) {
+                uidMatch = device
             }
-            if let name = Self.stringProperty(device, CMIOObjectPropertySelector(kCMIOObjectPropertyName)),
-               name == VirtualCamera.deviceName {
+            if name == VirtualCamera.deviceName {
                 nameMatch = device
             }
         }
-        return nameMatch
+        diagnostics.cmioDevices = names
+        return uidMatch ?? nameMatch
     }
 
     private func findSinkStream(of device: CMIOObjectID) -> CMIOStreamID? {

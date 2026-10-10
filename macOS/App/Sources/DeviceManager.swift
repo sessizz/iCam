@@ -205,8 +205,17 @@ final class DeviceManager {
 
     // MARK: Connection policy
 
+    /// Network interface of the active Wi-Fi connection ("en0", "awdl0").
+    var activeInterface: String? {
+        (active?.transport as? NetworkTransport)?.interfaceName
+    }
+
     private func refresh() {
         rebuildEntries()
+        // Peer-to-peer Wi-Fi only while it may be needed: nothing connected,
+        // or the connected phone is reachable only that way.
+        let overPeerToPeer = activeInterface.map { $0.hasPrefix("awdl") || $0.hasPrefix("llw") } ?? false
+        browser.setPeerToPeer(active == nil || overPeerToPeer)
         guard !isPaused else { return }
 
         // While a USB probe is in flight it may take over from a Wi-Fi
@@ -249,8 +258,8 @@ final class DeviceManager {
 
     private func openWiFi(_ service: BonjourPhone) {
         let key = serviceKey(service)
-        let connection = PhoneConnection(transport: NetworkTransport(endpoint: service.endpoint),
-                                         hello: makeHello(.wifi), serviceName: service.name)
+        let transport = NetworkTransport(endpoint: service.endpoint, allowPeerToPeer: service.peerToPeerOnly)
+        let connection = PhoneConnection(transport: transport, hello: makeHello(.wifi), serviceName: service.name)
         attempt = connection
         attemptKey = key
         state = .connecting(service.name)

@@ -78,15 +78,22 @@ final class FrameConformer {
 /// Wi-Fi delivers frames in bursts (power saving, retransmissions, other
 /// traffic); showing each frame the moment it arrives makes motion stutter
 /// even when no frame is lost. Every frame is held until its capture time
-/// plus the fastest recent transit plus the link's recent jitter (90th
-/// percentile over 4 s, at most 100 ms). Over USB that is a millisecond or
-/// two; frames that come later than that are shown immediately.
+/// plus an offset: the fastest recent transit plus the link's recent jitter
+/// (90th percentile over 4 s, at most 100 ms). Over USB that is a
+/// millisecond or two; frames that come later than that are shown at once.
+///
+/// The offset follows its target gradually (a few ms per frame) so that a
+/// jump in the estimate never holds or skips a frame visibly.
 final class PlayoutBuffer: @unchecked Sendable {
     /// Called on the buffer's own serial queue, in capture order.
     var output: ((CVPixelBuffer) -> Void)?
 
     static let window: CFTimeInterval = 4
     static let maxDelay: CFTimeInterval = 0.1
+    /// Largest change of the applied offset per frame: growing is allowed
+    /// faster (protects against the next burst) than shrinking.
+    static let maxGrowthPerFrame: CFTimeInterval = 0.003
+    static let maxShrinkPerFrame: CFTimeInterval = 0.001
 
     private let queue = DispatchQueue(label: "app.icam.playout", qos: .userInteractive)
     private let delayLock = OSAllocatedUnfairLock(initialState: 0.0)
@@ -94,6 +101,8 @@ final class PlayoutBuffer: @unchecked Sendable {
     // Confined to `queue`.
     private var history: [(arrival: CFTimeInterval, transit: CFTimeInterval)] = []
     private var delay: CFTimeInterval = 0
+    /// Capture time → due time offset in use (nil until the first frame).
+    private var offset: CFTimeInterval?
     private var lastDue: CFTimeInterval = 0
     private var pending: [(due: CFTimeInterval, buffer: CVPixelBuffer)] = []
     private var timer: DispatchSourceTimer?
@@ -113,6 +122,7 @@ final class PlayoutBuffer: @unchecked Sendable {
         queue.async {
             self.history.removeAll()
             self.delay = 0
+            self.offset = nil
             self.lastDue = 0
             self.delayLock.withLock { $0 = 0 }
             let waiting = self.pending
@@ -132,14 +142,23 @@ final class PlayoutBuffer: @unchecked Sendable {
         let fastest = transits[0]
         let jitter = transits[min(transits.count - 1, transits.count * 9 / 10)] - fastest
         let wanted = min(Self.maxDelay, max(0, jitter))
-        // Grow at once (protect against the next burst), shrink slowly so
-        // the delay doesn't oscillate.
+        // The target delay grows at once (protect against the next burst)
+        // and shrinks slowly so it doesn't oscillate; the offset actually
+        // applied follows the target a few ms per frame at most.
         delay = wanted > delay ? wanted : delay * 0.98 + wanted * 0.02
-        let currentDelay = delay
-        delayLock.withLock { $0 = currentDelay }
+        let target = fastest + delay
+        let applied: CFTimeInterval
+        if let offset {
+            applied = min(max(target, offset - Self.maxShrinkPerFrame), offset + Self.maxGrowthPerFrame)
+        } else {
+            applied = target
+        }
+        offset = applied
+        let addedDelay = max(0, applied - fastest)
+        delayLock.withLock { $0 = addedDelay }
 
         // Never reorder, even when the estimate moves.
-        let due = max(captureTime + fastest + delay, lastDue)
+        let due = max(captureTime + applied, lastDue)
         lastDue = due
         if pending.isEmpty, due <= CACurrentMediaTime() + 0.001 {
             output?(buffer)

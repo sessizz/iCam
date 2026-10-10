@@ -30,8 +30,15 @@ final class NetworkTransport: PhoneTransport {
     private var onData: ((Data) -> Void)?
     private var onClose: ((String?) -> Void)?
     private var didClose = false
+    private let interface = OSAllocatedUnfairLock<String?>(initialState: nil)
 
-    init(endpoint: NWEndpoint) {
+    /// Name of the network interface the connection runs over once ready,
+    /// e.g. "en0" (Wi-Fi network) or "awdl0" (peer-to-peer Wi-Fi). Any queue.
+    var interfaceName: String? { interface.withLock { $0 } }
+
+    /// `allowPeerToPeer` only for phones that aren't reachable over the
+    /// network: a connection over AWDL is slower and less steady.
+    init(endpoint: NWEndpoint, allowPeerToPeer: Bool) {
         let tcp = NWProtocolTCP.Options()
         tcp.noDelay = true
         tcp.connectionTimeout = 5
@@ -40,7 +47,7 @@ final class NetworkTransport: PhoneTransport {
         tcp.keepaliveInterval = 1
         tcp.keepaliveCount = 3
         let parameters = NWParameters(tls: nil, tcp: tcp)
-        parameters.includePeerToPeer = true
+        parameters.includePeerToPeer = allowPeerToPeer
         parameters.serviceClass = .interactiveVideo
         connection = NWConnection(to: endpoint, using: parameters)
     }
@@ -53,6 +60,8 @@ final class NetworkTransport: PhoneTransport {
         connection.stateUpdateHandler = { [weak self] state in
             switch state {
             case .ready:
+                let name = self?.connection.currentPath?.availableInterfaces.first?.name
+                self?.interface.withLock { $0 = name }
                 onReady()
             case .waiting(let error):
                 // Typically "connection refused": the app isn't listening.

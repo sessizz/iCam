@@ -301,6 +301,7 @@ final class AppModel {
         let phone: String
         if let connected = devices.connected {
             phone = "\(connected.name) (\(connected.model)) via \(connected.transport.displayName)"
+                + (devices.activeInterface.map { " (\($0))" } ?? "")
         } else {
             phone = "\(devices.state)"
         }
@@ -339,7 +340,7 @@ final class AppModel {
         }
         lines.append(String(format: "From iPhone: %.0f fps, %.1f Mbps, %.0f ms RTT, playout buffer %.0f ms",
                             stats.fps, stats.bitrate / 1_000_000, stats.rttMs, stats.playoutDelayMs))
-        lines.append("To virtual camera: \(d.framesPerSecond) fps, dropped \(d.droppedFrames)")
+        lines.append("To virtual camera: \(d.framesPerSecond) fps, dropped \(d.droppedFrames)/s (queue full)")
         if !d.lastAttempt.isEmpty {
             lines.append("Input attempt: \(d.lastAttempt.joined(separator: "; "))")
         }

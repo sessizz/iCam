@@ -14,6 +14,8 @@ struct BonjourPhone: Hashable {
     var name: String
     var deviceID: String?
     var endpoint: NWEndpoint
+    /// Reachable only over peer-to-peer Wi-Fi (AWDL), not the local network.
+    var peerToPeerOnly = false
 }
 
 final class PhoneBrowser {
@@ -25,11 +27,23 @@ final class PhoneBrowser {
 
     private let log = Logger(subsystem: "app.icam.mac", category: "bonjour")
     private var browser: NWBrowser?
+    private var peerToPeer = true
+
+    /// Peer-to-peer Wi-Fi (AWDL) lets a Mac find an iPhone without a shared
+    /// network, but while it is active the Wi-Fi radio keeps leaving the
+    /// network's channel, which shows up as regular latency spikes. Turn it
+    /// off while a phone is connected over the network or USB.
+    func setPeerToPeer(_ enabled: Bool) {
+        guard enabled != peerToPeer else { return }
+        peerToPeer = enabled
+        log.info("Peer-to-peer browsing \(enabled ? "on" : "off", privacy: .public)")
+        start()
+    }
 
     func start() {
         browser?.cancel()
         let parameters = NWParameters()
-        parameters.includePeerToPeer = true
+        parameters.includePeerToPeer = peerToPeer
         let browser = NWBrowser(for: .bonjourWithTXTRecord(type: ICam.bonjourServiceType, domain: nil),
                                 using: parameters)
         browser.browseResultsChangedHandler = { [weak self] results, _ in
@@ -65,7 +79,8 @@ final class PhoneBrowser {
             }
             let peerToPeerOnly = !result.interfaces.isEmpty
                 && result.interfaces.allSatisfy { $0.name.hasPrefix("awdl") || $0.name.hasPrefix("llw") }
-            let phone = BonjourPhone(name: name, deviceID: deviceID, endpoint: result.endpoint)
+            let phone = BonjourPhone(name: name, deviceID: deviceID, endpoint: result.endpoint,
+                                     peerToPeerOnly: peerToPeerOnly)
             // Prefer the result reachable over the regular network.
             if let existing = byName[name], !existing.peerToPeerOnly, peerToPeerOnly { continue }
             byName[name] = (phone, peerToPeerOnly)

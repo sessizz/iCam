@@ -53,7 +53,18 @@ final class VirtualCameraSink: @unchecked Sendable {
     var onDiagnostics: ((Diagnostics) -> Void)?
 
     private let log = Logger(subsystem: "app.icam.mac", category: "sink")
-    private let queue = DispatchQueue(label: "app.icam.sink", qos: .userInteractive)
+    /// Discovery, demand and diagnostics: these make blocking calls into
+    /// the camera extension, so frames never wait on this queue.
+    private let queue = DispatchQueue(label: "app.icam.sink", qos: .userInitiated)
+
+    /// The frame path, used synchronously from the playout queue.
+    private struct FrameState {
+        var bufferQueue: CMSimpleQueue?
+        var formatDescription: CMVideoFormatDescription?
+        var framesThisSecond = 0
+        var droppedThisSecond = 0
+    }
+    private let frames = OSAllocatedUnfairLock(uncheckedState: FrameState())
 
     // Confined to `queue`.
     private var deviceID: CMIOObjectID = 0
@@ -63,8 +74,7 @@ final class VirtualCameraSink: @unchecked Sendable {
     private var nextConnectTime: CFAbsoluteTime = 0
     private var consecutiveFailures = 0
     private var sinkStreamID: CMIOStreamID = 0
-    private var bufferQueue: CMSimpleQueue?
-    private var formatDescription: CMVideoFormatDescription?
+    private var isConnected = false
     private var demand = false
     private var pollTimer: DispatchSourceTimer?
     private var pendingMessage: String?
@@ -77,8 +87,6 @@ final class VirtualCameraSink: @unchecked Sendable {
     /// heartbeat, so a lost "off" can't keep the iPhone camera on forever.
     private var notificationDemandUntil: CFAbsoluteTime = 0
     private var diagnostics = Diagnostics()
-    private var framesThisSecond = 0
-    private var droppedFrames = 0
     private var darwinObserversInstalled = false
     private var avObserver: NSObjectProtocol?
 
@@ -117,45 +125,43 @@ final class VirtualCameraSink: @unchecked Sendable {
 
     // MARK: Frames
 
-    /// Hands a frame to the extension. Called from the video pipeline queue.
+    /// Hands a frame to the extension. Called from the playout queue; does
+    /// not block on anything but a short lock.
     func enqueue(_ pixelBuffer: CVPixelBuffer) {
-        queue.async { self.enqueueOnQueue(pixelBuffer) }
-    }
+        frames.withLockUnchecked { f in
+            guard let bufferQueue = f.bufferQueue else { return }
+            if CMSimpleQueueGetCount(bufferQueue) >= CMSimpleQueueGetCapacity(bufferQueue) {
+                f.droppedThisSecond += 1
+                return
+            }
+            if f.formatDescription == nil
+                || !CMVideoFormatDescriptionMatchesImageBuffer(f.formatDescription!, imageBuffer: pixelBuffer) {
+                f.formatDescription = nil
+                CMVideoFormatDescriptionCreateForImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: pixelBuffer,
+                                                             formatDescriptionOut: &f.formatDescription)
+            }
+            guard let formatDescription = f.formatDescription else { return }
 
-    private func enqueueOnQueue(_ pixelBuffer: CVPixelBuffer) {
-        guard let bufferQueue else { return }
-        if CMSimpleQueueGetCount(bufferQueue) >= CMSimpleQueueGetCapacity(bufferQueue) {
-            droppedFrames += 1
-            return
-        }
+            var timing = CMSampleTimingInfo(
+                duration: CMTime(value: 1, timescale: CMTimeScale(VirtualCamera.frameRate)),
+                presentationTimeStamp: CMClockGetTime(CMClockGetHostTimeClock()),
+                decodeTimeStamp: .invalid)
+            var sampleBuffer: CMSampleBuffer?
+            guard CMSampleBufferCreateReadyWithImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: pixelBuffer,
+                                                           formatDescription: formatDescription,
+                                                           sampleTiming: &timing,
+                                                           sampleBufferOut: &sampleBuffer) == noErr,
+                  let sampleBuffer else { return }
 
-        if formatDescription == nil
-            || !CMVideoFormatDescriptionMatchesImageBuffer(formatDescription!, imageBuffer: pixelBuffer) {
-            formatDescription = nil
-            CMVideoFormatDescriptionCreateForImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: pixelBuffer,
-                                                         formatDescriptionOut: &formatDescription)
-        }
-        guard let formatDescription else { return }
-
-        var timing = CMSampleTimingInfo(
-            duration: CMTime(value: 1, timescale: CMTimeScale(VirtualCamera.frameRate)),
-            presentationTimeStamp: CMClockGetTime(CMClockGetHostTimeClock()),
-            decodeTimeStamp: .invalid)
-        var sampleBuffer: CMSampleBuffer?
-        guard CMSampleBufferCreateReadyWithImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: pixelBuffer,
-                                                       formatDescription: formatDescription,
-                                                       sampleTiming: &timing,
-                                                       sampleBufferOut: &sampleBuffer) == noErr,
-              let sampleBuffer else { return }
-
-        // The queue takes ownership of one reference; the extension side
-        // releases it after consuming.
-        let element = Unmanaged.passRetained(sampleBuffer).toOpaque()
-        if CMSimpleQueueEnqueue(bufferQueue, element: element) != noErr {
-            Unmanaged<CMSampleBuffer>.fromOpaque(element).release()
-            droppedFrames += 1
-        } else {
-            framesThisSecond += 1
+            // The queue takes ownership of one reference; the extension side
+            // releases it after consuming.
+            let element = Unmanaged.passRetained(sampleBuffer).toOpaque()
+            if CMSimpleQueueEnqueue(bufferQueue, element: element) != noErr {
+                Unmanaged<CMSampleBuffer>.fromOpaque(element).release()
+                f.droppedThisSecond += 1
+            } else {
+                f.framesThisSecond += 1
+            }
         }
     }
 
@@ -186,7 +192,7 @@ final class VirtualCameraSink: @unchecked Sendable {
     // MARK: Device discovery
 
     private func connect() {
-        guard bufferQueue == nil, CFAbsoluteTimeGetCurrent() >= nextConnectTime else { return }
+        guard !isConnected, CFAbsoluteTimeGetCurrent() >= nextConnectTime else { return }
         guard let device = findDevice() else {
             update(state: .searching)
             return
@@ -206,8 +212,11 @@ final class VirtualCameraSink: @unchecked Sendable {
             case .success(let simpleQueue):
                 deviceID = device
                 sinkStreamID = stream.id
-                bufferQueue = simpleQueue
-                formatDescription = nil
+                isConnected = true
+                frames.withLockUnchecked {
+                    $0.bufferQueue = simpleQueue
+                    $0.formatDescription = nil
+                }
                 lastMessage = nil
                 diagnostics.lastAttempt = results + ["\(stream.summary): started"]
                 consecutiveFailures = 0
@@ -274,8 +283,11 @@ final class VirtualCameraSink: @unchecked Sendable {
         }
         deviceID = 0
         sinkStreamID = 0
-        bufferQueue = nil
-        formatDescription = nil
+        isConnected = false
+        frames.withLockUnchecked {
+            $0.bufferQueue = nil
+            $0.formatDescription = nil
+        }
         propertyDemand = false
         recomputeDemand()
     }
@@ -420,7 +432,7 @@ final class VirtualCameraSink: @unchecked Sendable {
         timer.setEventHandler { [weak self] in
             guard let self else { return }
             self.pollTicks += 1
-            if self.bufferQueue == nil, self.pollTicks % 8 == 0 {
+            if !self.isConnected, self.pollTicks % 8 == 0 {
                 // Device enumeration is comparatively expensive; the device
                 // list listener covers the common case, this is a fallback.
                 self.connect()
@@ -486,9 +498,15 @@ final class VirtualCameraSink: @unchecked Sendable {
         diagnostics.extensionStatus = device == 0 ? nil
             : Self.stringProperty(device, VirtualCamera.fourCharCode(VirtualCamera.statusSelector))
         diagnostics.state = state
-        diagnostics.framesPerSecond = framesThisSecond
-        diagnostics.droppedFrames = droppedFrames
-        framesThisSecond = 0
+        let counts = frames.withLockUnchecked { f -> (Int, Int) in
+            defer {
+                f.framesThisSecond = 0
+                f.droppedThisSecond = 0
+            }
+            return (f.framesThisSecond, f.droppedThisSecond)
+        }
+        diagnostics.framesPerSecond = counts.0
+        diagnostics.droppedFrames = counts.1
         let snapshot = diagnostics
         let callback = onDiagnostics
         DispatchQueue.main.async { callback?(snapshot) }

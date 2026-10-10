@@ -33,6 +33,16 @@ final class VirtualCameraSink: @unchecked Sendable {
         var avFoundationSeesCamera = false
         /// Names of all CoreMediaIO devices visible to this process.
         var cmioDevices: [String] = []
+        /// The virtual camera's streams as CoreMediaIO lists them.
+        var streams: [String] = []
+        /// Result of each stream tried by the latest connection attempt.
+        var lastAttempt: [String] = []
+        /// The very first failure since launch; later retries can fail
+        /// differently because of it.
+        var firstFailure: String?
+        var failedAttempts = 0
+        /// The extension's own report (`status` property), nil if unreadable.
+        var extensionStatus: String?
     }
 
     /// Main queue.
@@ -47,6 +57,10 @@ final class VirtualCameraSink: @unchecked Sendable {
 
     // Confined to `queue`.
     private var deviceID: CMIOObjectID = 0
+    /// The virtual camera device last found, connected or not; used to read
+    /// its properties for diagnostics even when the sink can't be started.
+    private var knownDeviceID: CMIOObjectID = 0
+    private var nextConnectTime: CFAbsoluteTime = 0
     private var sinkStreamID: CMIOStreamID = 0
     private var bufferQueue: CMSimpleQueue?
     private var formatDescription: CMVideoFormatDescription?
@@ -86,7 +100,10 @@ final class VirtualCameraSink: @unchecked Sendable {
 
     /// Re-scan for the device, e.g. right after the extension was activated.
     func refresh() {
-        queue.async { self.connect() }
+        queue.async {
+            self.nextConnectTime = 0
+            self.connect()
+        }
     }
 
     func stop() {
@@ -168,46 +185,84 @@ final class VirtualCameraSink: @unchecked Sendable {
     // MARK: Device discovery
 
     private func connect() {
-        guard bufferQueue == nil else { return }
+        guard bufferQueue == nil, CFAbsoluteTimeGetCurrent() >= nextConnectTime else { return }
         guard let device = findDevice() else {
             update(state: .searching)
             return
         }
-        guard let sink = findSinkStream(of: device) else {
+        let streams = describeStreams(of: device)
+        diagnostics.streams = streams.map(\.summary)
+        let candidates = sinkCandidates(streams)
+        guard !candidates.isEmpty else {
             update(state: .failed("Camera extension has no input stream"))
             return
         }
 
+        var results: [String] = []
+        var lastStatus: OSStatus = noErr
+        for stream in candidates {
+            switch open(stream, on: device) {
+            case .success(let simpleQueue):
+                deviceID = device
+                sinkStreamID = stream.id
+                bufferQueue = simpleQueue
+                formatDescription = nil
+                lastMessage = nil
+                diagnostics.lastAttempt = results + ["\(stream.summary): started"]
+                log.notice("Connected to virtual camera sink \(stream.summary, privacy: .public)")
+                update(state: .ready)
+                installDemandListener()
+                flushMessage()
+                pollDemand()
+                return
+            case .failure(let failure):
+                lastStatus = failure.status
+                let text = "\(stream.summary): \(failure.step) failed (\(failure.status))"
+                results.append(text)
+                log.error("Virtual camera sink: \(text, privacy: .public)")
+            }
+        }
+
+        // Every stream refused. Back off (2 s doubling to 30 s) so a stuck
+        // system service isn't hammered; refresh() retries immediately.
+        diagnostics.failedAttempts += 1
+        diagnostics.lastAttempt = results
+        if diagnostics.firstFailure == nil {
+            diagnostics.firstFailure = results.joined(separator: "; ")
+        }
+        let delay = min(30, 2 * pow(2, Double(min(diagnostics.failedAttempts - 1, 4))))
+        nextConnectTime = CFAbsoluteTimeGetCurrent() + delay
+        update(state: .failed("Cannot start the virtual camera input (\(lastStatus))"))
+    }
+
+    private struct OpenFailure: Error {
+        let step: String
+        let status: OSStatus
+    }
+
+    /// Registers for the stream's buffer queue and starts it.
+    private func open(_ stream: StreamInfo, on device: CMIOObjectID) -> Result<CMSimpleQueue, OpenFailure> {
         var unmanagedQueue: Unmanaged<CMSimpleQueue>?
         let refcon = Unmanaged.passUnretained(self).toOpaque()
-        var status = CMIOStreamCopyBufferQueue(sink, { _, _, _ in
+        var status = CMIOStreamCopyBufferQueue(stream.id, { _, _, _ in
             // Called when the extension consumed a buffer. Nothing to do: we
             // check the queue's fill level before every enqueue.
         }, refcon, &unmanagedQueue)
         guard status == noErr, let unmanagedQueue else {
-            log.error("CMIOStreamCopyBufferQueue failed: \(status)")
-            update(state: .failed("Cannot open the virtual camera (\(status))"))
-            return
+            return .failure(OpenFailure(step: "CopyBufferQueue", status: status))
         }
         let simpleQueue = unmanagedQueue.takeRetainedValue()
 
-        status = CMIODeviceStartStream(device, sink)
+        status = CMIODeviceStartStream(device, stream.id)
         guard status == noErr else {
-            log.error("CMIODeviceStartStream failed: \(status)")
-            update(state: .failed("Cannot start the virtual camera input (\(status))"))
-            return
+            // Drop the registration so the next attempt starts clean.
+            var released: Unmanaged<CMSimpleQueue>?
+            if CMIOStreamCopyBufferQueue(stream.id, nil, nil, &released) == noErr {
+                released?.release()
+            }
+            return .failure(OpenFailure(step: "StartStream", status: status))
         }
-
-        deviceID = device
-        sinkStreamID = sink
-        bufferQueue = simpleQueue
-        formatDescription = nil
-        lastMessage = nil
-        log.info("Connected to virtual camera sink (device \(device), stream \(sink))")
-        update(state: .ready)
-        installDemandListener()
-        flushMessage()
-        pollDemand()
+        return .success(simpleQueue)
     }
 
     private func disconnect() {
@@ -269,40 +324,64 @@ final class VirtualCameraSink: @unchecked Sendable {
             }
         }
         diagnostics.cmioDevices = names
+        knownDeviceID = uidMatch ?? nameMatch ?? 0
         return uidMatch ?? nameMatch
     }
 
-    private func findSinkStream(of device: CMIOObjectID) -> CMIOStreamID? {
+    /// One stream of the virtual camera device as CoreMediaIO reports it.
+    private struct StreamInfo {
+        let id: CMIOStreamID
+        let index: Int
+        let name: String?
+        let direction: UInt32?
+        let hasMessageProperty: Bool
+
+        var summary: String {
+            "#\(index) \"\(name ?? "?")\" (id \(id), direction \(direction.map(String.init) ?? "?")"
+                + (hasMessageProperty ? ", iCam input property)" : ")")
+        }
+    }
+
+    private func describeStreams(of device: CMIOObjectID) -> [StreamInfo] {
         var address = Self.address(CMIOObjectPropertySelector(kCMIODevicePropertyStreams))
         var dataSize: UInt32 = 0
         guard CMIOObjectGetPropertyDataSize(device, &address, 0, nil, &dataSize) == noErr, dataSize > 0 else {
-            return nil
+            return []
         }
         var streams = [CMIOStreamID](repeating: 0, count: Int(dataSize) / MemoryLayout<CMIOStreamID>.size)
         var used: UInt32 = 0
         guard CMIOObjectGetPropertyData(device, &address, 0, nil, dataSize, &used, &streams) == noErr else {
-            return nil
+            return []
         }
-        // Only iCam's sink stream declares the custom placeholder-message
-        // property, which identifies it unambiguously.
-        for stream in streams {
-            var messageAddress = Self.customAddress(VirtualCamera.messageSelector)
-            if CMIOObjectHasProperty(stream, &messageAddress) { return stream }
-        }
-        // CoreMediaIO follows the CoreAudio convention, seen from the Mac:
-        // 1 = input (the camera stream apps read), 0 = output (the sink fed
-        // by a client).
-        for stream in streams {
+        return streams.enumerated().map { index, stream -> StreamInfo in
             var directionAddress = Self.address(CMIOObjectPropertySelector(kCMIOStreamPropertyDirection))
-            var direction: UInt32 = 1
+            var direction: UInt32 = 0
             var directionUsed: UInt32 = 0
-            if CMIOObjectGetPropertyData(stream, &directionAddress, 0, nil, UInt32(MemoryLayout<UInt32>.size),
-                                         &directionUsed, &direction) == noErr, direction == 0 {
-                return stream
-            }
+            let hasDirection = CMIOObjectGetPropertyData(stream, &directionAddress, 0, nil,
+                                                         UInt32(MemoryLayout<UInt32>.size),
+                                                         &directionUsed, &direction) == noErr
+            var messageAddress = Self.customAddress(VirtualCamera.messageSelector)
+            return StreamInfo(id: stream, index: index,
+                              name: Self.stringProperty(stream, CMIOObjectPropertySelector(kCMIOObjectPropertyName)),
+                              direction: hasDirection ? direction : nil,
+                              hasMessageProperty: CMIOObjectHasProperty(stream, &messageAddress))
         }
-        // Streams are listed in the order the extension added them: source, sink.
-        return streams.count > 1 ? streams[1] : nil
+    }
+
+    /// The streams that may be the extension's input, most likely first.
+    /// The extension names its input stream and gives only it the custom
+    /// message property; it also adds it second, which is what OBS relies on
+    /// for its own extension. The stream video apps read is never a
+    /// candidate: starting it would make this app a camera client.
+    private func sinkCandidates(_ streams: [StreamInfo]) -> [StreamInfo] {
+        func score(_ stream: StreamInfo) -> Int {
+            (stream.name == VirtualCamera.sinkStreamName ? 8 : 0)
+                + (stream.hasMessageProperty ? 4 : 0)
+                + (stream.index == 1 ? 2 : 0)
+        }
+        return streams
+            .filter { $0.name != VirtualCamera.deviceName && score($0) > 0 }
+            .sorted { score($0) > score($1) }
     }
 
     private func installDevicesListener() {
@@ -316,6 +395,7 @@ final class VirtualCameraSink: @unchecked Sendable {
                 self.log.info("Virtual camera device changed; reconnecting")
                 self.disconnect()
             }
+            self.nextConnectTime = 0
             self.connect()
         }
     }
@@ -337,14 +417,12 @@ final class VirtualCameraSink: @unchecked Sendable {
         timer.setEventHandler { [weak self] in
             guard let self else { return }
             self.pollTicks += 1
-            if self.bufferQueue == nil {
+            if self.bufferQueue == nil, self.pollTicks % 8 == 0 {
                 // Device enumeration is comparatively expensive; the device
                 // list listener covers the common case, this is a fallback.
-                if self.pollTicks % 8 == 0 { self.connect() }
-                self.recomputeDemand()
-            } else {
-                self.pollDemand()
+                self.connect()
             }
+            self.pollDemand()
             if self.pollTicks % 4 == 0 { self.publishDiagnostics() }
         }
         timer.resume()
@@ -352,11 +430,16 @@ final class VirtualCameraSink: @unchecked Sendable {
     }
 
     private func pollDemand() {
-        guard sinkStreamID != 0 else { return }
+        let device = deviceID != 0 ? deviceID : knownDeviceID
+        guard device != 0 else {
+            recomputeDemand()
+            return
+        }
         let selector = VirtualCamera.fourCharCode(VirtualCamera.demandSelector)
         // The extension publishes demand on both the sink stream and the
         // device; use whichever this macOS version exposes.
-        let value = Self.stringProperty(sinkStreamID, selector) ?? Self.stringProperty(deviceID, selector)
+        let value = (sinkStreamID != 0 ? Self.stringProperty(sinkStreamID, selector) : nil)
+            ?? Self.stringProperty(device, selector)
         diagnostics.demandProperty = value
         propertyDemand = value == "1"
         recomputeDemand()
@@ -396,6 +479,9 @@ final class VirtualCameraSink: @unchecked Sendable {
     }
 
     private func publishDiagnostics() {
+        let device = deviceID != 0 ? deviceID : knownDeviceID
+        diagnostics.extensionStatus = device == 0 ? nil
+            : Self.stringProperty(device, VirtualCamera.fourCharCode(VirtualCamera.statusSelector))
         diagnostics.state = state
         diagnostics.framesPerSecond = framesThisSecond
         diagnostics.droppedFrames = droppedFrames

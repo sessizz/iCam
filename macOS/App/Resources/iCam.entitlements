@@ -4,6 +4,10 @@
 <dict>
 	<key>com.apple.developer.system-extension.install</key>
 	<true/>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>$(TeamIdentifierPrefix)$(BUNDLE_ID_PREFIX).mac.CameraExtension</string>
+	</array>
 	<key>com.apple.security.device.camera</key>
 	<true/>
 </dict>

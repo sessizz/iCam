@@ -106,9 +106,14 @@ En iyi sonuç için iPhone'u **yatay** ve **arka kamera** Mac'e (size) bakacak �
 | Görüntü takılıyor (Wi-Fi) | iCam bit hızını otomatik düşürür; yine de en iyi deneyim için USB kullanın veya 5 GHz ağa geçin. |
 | Uzantıyı değiştirdim ama eski sürüm çalışıyor | macOS uzantıyı yalnızca sürüm numarası değişince yeniler. `./scripts/install-mac.sh` her kurulumda yeni numara verir; Xcode'dan derliyorsanız `CURRENT_PROJECT_VERSION`'ı artırın. Açık olan video uygulamalarını yeniden başlatın. |
 | Kamera görünüyor ama görüntü yok | Menüde **Gelişmiş › Tanılama** bölümünü açın; her adımın durumunu gösterir. “Tanılamayı Kopyala” ile metni paylaşın. |
+| “Cannot start the virtual camera input (…)” | Tanılamadaki *Camera streams*, *Extension reports* ve *Input attempt* satırları hangi akışın denendiğini ve uzantının istemciyi kabul edip etmediğini gösterir. *Extension reports*'taki `build` numarası uygulamanınkiyle aynı değilse eski uzantı çalışıyordur: Mac'i yeniden başlatın. |
 | Uzantıyı kaldırmak | `/Applications/iCam.app`'i çöpe atın (macOS uzantıyı kaldırır) veya `systemextensionsctl uninstall <TeamID> <bundle id>`. |
 
-Günlükler için Konsol uygulamasında `app.icam` alt sistemini filtreleyin.
+Günlükler için Konsol uygulamasında `app.icam` alt sistemini filtreleyin veya Terminal'de:
+
+```bash
+log show --last 10m --info --predicate 'subsystem BEGINSWITH "app.icam"'
+```
 
 ## Sınırlamalar
 

@@ -13,6 +13,9 @@ enum VirtualCamera {
     static let sinkStreamUUID = UUID(uuidString: "B5F82C17-4D6A-4E93-8C21-7A0E9D3F6B52")!
 
     static let deviceName = "iCam iPhone Camera"
+    /// Name of the private input stream the Mac app feeds; also how the app
+    /// tells it apart from the camera stream video apps read.
+    static let sinkStreamName = "iCam Input"
     static let manufacturer = "iCam"
     static let model = "iPhone Camera"
 
@@ -32,6 +35,9 @@ enum VirtualCamera {
     /// `message` (written by the app): text shown on the placeholder frame
     /// while no live video is available.
     static let messageSelector = "iCms"
+    /// `status` (device, read by the app): one line describing the
+    /// extension's side of the sink connection, for diagnostics.
+    static let statusSelector = "iCst"
 
     /// Darwin notifications posted by the extension as a second, independent
     /// demand channel (plus a heartbeat while in use), in case the custom

@@ -246,6 +246,8 @@ final class AppModel {
             "Virtual camera input: \(d.state)",
             "AVFoundation sees iCam camera: \(d.avFoundationSeesCamera ? "yes" : "no")",
             "CoreMediaIO devices: \(d.cmioDevices.isEmpty ? "none" : d.cmioDevices.joined(separator: ", "))",
+            "Camera streams: \(d.streams.isEmpty ? "none" : d.streams.joined(separator: "; "))",
+            "Extension reports: \(d.extensionStatus ?? "unreadable")",
             "Demand property: \(demandProperty), notification: \(demandNotification)",
             "Camera in use by an app: \(cameraInUse ? "yes" : "no"), preview open: \(previewVisible ? "yes" : "no")",
             "iPhone: \(phone)",
@@ -258,6 +260,12 @@ final class AppModel {
         lines.append(String(format: "From iPhone: %.0f fps, %.1f Mbps, %.0f ms RTT",
                             stats.fps, stats.bitrate / 1_000_000, stats.rttMs))
         lines.append("To virtual camera: \(d.framesPerSecond) fps, dropped \(d.droppedFrames)")
+        if !d.lastAttempt.isEmpty {
+            lines.append("Input attempt: \(d.lastAttempt.joined(separator: "; "))")
+        }
+        if let first = d.firstFailure {
+            lines.append("First input failure: \(first) (\(d.failedAttempts) failed attempt(s))")
+        }
         if let error = devices.lastError { lines.append("Last error: \(error)") }
         return lines.joined(separator: "\n")
     }

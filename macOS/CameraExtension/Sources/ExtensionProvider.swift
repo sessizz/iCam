@@ -28,6 +28,8 @@ private let demandProperty = CMIOExtensionProperty(
     rawValue: VirtualCamera.extensionPropertyName(VirtualCamera.demandSelector))
 private let messageProperty = CMIOExtensionProperty(
     rawValue: VirtualCamera.extensionPropertyName(VirtualCamera.messageSelector))
+private let statusProperty = CMIOExtensionProperty(
+    rawValue: VirtualCamera.extensionPropertyName(VirtualCamera.statusSelector))
 
 private let log = Logger(subsystem: "app.icam.extension", category: "camera")
 
@@ -101,6 +103,16 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
     // Read from CMIO's property queue, so kept behind locks.
     private let demand = OSAllocatedUnfairLock(initialState: false)
     private let currentMessage = OSAllocatedUnfairLock(initialState: DeviceSource.defaultMessage)
+    private let sinkReport = OSAllocatedUnfairLock(initialState: SinkReport())
+
+    /// The extension's view of the sink connection, published to the app as
+    /// the `status` property so its diagnostics show both sides.
+    struct SinkReport {
+        var authorization = "no sink client yet"
+        var running = false
+        var consumed = 0
+        var sourceClients = 0
+    }
 
     // State below is confined to `queue`.
     private var sourceClientCount = 0
@@ -131,7 +143,7 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
                                      legacyDeviceID: nil, source: self)
         sourceStream = SourceStream(localizedName: VirtualCamera.deviceName,
                                     streamID: VirtualCamera.sourceStreamUUID, device: self)
-        sinkStream = SinkStream(localizedName: "iCam Input",
+        sinkStream = SinkStream(localizedName: VirtualCamera.sinkStreamName,
                                 streamID: VirtualCamera.sinkStreamUUID, device: self)
         do {
             try device.addStream(sourceStream.stream)
@@ -159,7 +171,7 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
     // MARK: CMIOExtensionDeviceSource
 
     var availableProperties: Set<CMIOExtensionProperty> {
-        [.deviceTransportType, .deviceModel, demandProperty]
+        [.deviceTransportType, .deviceModel, demandProperty, statusProperty]
     }
 
     func deviceProperties(forProperties properties: Set<CMIOExtensionProperty>) throws
@@ -176,6 +188,10 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
                 CMIOExtensionPropertyState<AnyObject>(value: (isInDemand ? "1" : "0") as NSString),
                 forProperty: demandProperty)
         }
+        if properties.contains(statusProperty) {
+            deviceProperties.setPropertyState(CMIOExtensionPropertyState<AnyObject>(value: statusLine as NSString),
+                                              forProperty: statusProperty)
+        }
         return deviceProperties
     }
 
@@ -184,6 +200,13 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
     // MARK: Shared state accessors (any queue)
 
     var isInDemand: Bool { demand.withLock { $0 } }
+
+    var statusLine: String {
+        let report = sinkReport.withLock { $0 }
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        return "build \(build); \(report.authorization); sink \(report.running ? "running" : "stopped"), "
+            + "\(report.consumed) frames in; \(report.sourceClients) camera client(s)"
+    }
     var message: String { currentMessage.withLock { $0 } }
 
     /// Lock-protected: read from CMIO callbacks, which must never block on
@@ -226,6 +249,7 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
     func sourceStarted() {
         queue.async {
             self.sourceClientCount += 1
+            self.reportSourceClients()
             log.info("Source started, clients: \(self.sourceClientCount)")
             if self.sourceClientCount == 1 {
                 self.startPlaceholderTimer()
@@ -237,6 +261,7 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
     func sourceStopped() {
         queue.async {
             self.sourceClientCount = max(0, self.sourceClientCount - 1)
+            self.reportSourceClients()
             log.info("Source stopped, clients: \(self.sourceClientCount)")
             if self.sourceClientCount == 0 {
                 self.placeholderTimer?.cancel()
@@ -244,6 +269,11 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
                 self.publishDemand(false)
             }
         }
+    }
+
+    private func reportSourceClients() {
+        let count = sourceClientCount
+        sinkReport.withLock { $0.sourceClients = count }
     }
 
     private func publishDemand(_ value: Bool) {
@@ -271,20 +301,28 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
         // Be lenient about how the identifier is spelled (team prefixes etc.)
         // but never let an unrelated app inject video.
         let allowed = appID.isEmpty || (client.signingID.map { $0.contains(appID) } ?? true)
+        let signingID = client.signingID ?? "unsigned"
+        let authorization = "sink client \(signingID) (pid \(client.pid)) \(allowed ? "allowed" : "rejected")"
+        sinkReport.withLock { $0.authorization = authorization }
         if allowed {
+            log.notice("Sink client \(signingID, privacy: .public) allowed")
             queue.async { self.sinkClient = client }
         } else {
-            log.error("Rejected sink client \(client.signingID ?? "unknown", privacy: .public)")
+            log.error("Rejected sink client \(signingID, privacy: .public), expected \(appID, privacy: .public)")
         }
         return allowed
     }
 
     func sinkStarted() {
         queue.async {
-            guard self.sinkClient != nil else { return }
+            guard self.sinkClient != nil else {
+                log.error("Sink started without an authorized client")
+                return
+            }
             self.sinkRunning = true
             self.sinkGeneration += 1
-            log.info("Sink started")
+            self.sinkReport.withLock { $0.running = true }
+            log.notice("Sink started")
             self.consumeNext(generation: self.sinkGeneration)
         }
     }
@@ -293,7 +331,8 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
         queue.async {
             self.sinkRunning = false
             self.sinkGeneration += 1
-            log.info("Sink stopped")
+            self.sinkReport.withLock { $0.running = false }
+            log.notice("Sink stopped")
         }
         setMessage(Self.defaultMessage)
     }
@@ -304,6 +343,7 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
                self.sourceClientIDs.isEmpty, self.sourceClientCount > 0 {
                 log.notice("Last camera client went away without stopping; resetting")
                 self.sourceClientCount = 0
+                self.reportSourceClients()
                 self.placeholderTimer?.cancel()
                 self.placeholderTimer = nil
                 self.publishDemand(false)
@@ -312,6 +352,7 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
             self.sinkClient = nil
             self.sinkRunning = false
             self.sinkGeneration += 1
+            self.sinkReport.withLock { $0.running = false }
             self.setMessage(Self.defaultMessage)
             log.info("iCam app disconnected")
         }
@@ -324,6 +365,7 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
             self.queue.async {
                 guard generation == self.sinkGeneration else { return }
                 if let sampleBuffer {
+                    self.sinkReport.withLock { $0.consumed += 1 }
                     self.handleLive(sampleBuffer)
                     let output = CMIOExtensionScheduledOutput(sequenceNumber: sequenceNumber,
                                                               hostTimeInNanoseconds: nanoseconds(hostTimeNow()))

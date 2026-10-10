@@ -205,6 +205,16 @@ final class DeviceManager {
 
     // MARK: Connection policy
 
+    @ObservationIgnored private var discoveryWanted = false
+
+    /// While the phone list is on screen, browse over peer-to-peer Wi-Fi
+    /// too, so phones reachable only that way can be picked.
+    func setDiscoveryWanted(_ wanted: Bool) {
+        guard wanted != discoveryWanted else { return }
+        discoveryWanted = wanted
+        refresh()
+    }
+
     /// Network interface of the active Wi-Fi connection ("en0", "awdl0").
     var activeInterface: String? {
         (active?.transport as? NetworkTransport)?.interfaceName
@@ -215,7 +225,7 @@ final class DeviceManager {
         // Peer-to-peer Wi-Fi only while it may be needed: nothing connected,
         // or the connected phone is reachable only that way.
         let overPeerToPeer = activeInterface.map { $0.hasPrefix("awdl") || $0.hasPrefix("llw") } ?? false
-        browser.setPeerToPeer(active == nil || overPeerToPeer)
+        browser.setPeerToPeer(active == nil || overPeerToPeer || discoveryWanted)
         guard !isPaused else { return }
 
         // While a USB probe is in flight it may take over from a Wi-Fi

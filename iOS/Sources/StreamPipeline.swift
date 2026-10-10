@@ -10,7 +10,10 @@
 //   * The lowest recent round trip is the link's baseline; how far the
 //     typical (median) round trip sits above it is the queueing delay.
 //     Only a queue that keeps building means the stream is faster than the
-//     link: then the bitrate goes down. A clean link raises it again.
+//     link: then the bitrate goes down, to just below what the link
+//     actually delivered. A clean link raises it again, but only while the
+//     stream really uses the current rate: a quiet scene encodes far below
+//     the target and proves nothing about the link.
 //   * Wi-Fi delivers in bursts (power saving, retransmissions, other
 //     traffic). Hiccups of 100–300 ms are normal there and are *not*
 //     congestion, so they never drop frames by themselves; the Mac smooths
@@ -79,6 +82,7 @@ final class StreamPipeline: CameraCaptureDelegate {
     private struct InFlightFrame {
         let sequence: UInt32
         let sentAt: CFTimeInterval
+        let bytes: Int
     }
 
     private struct State {
@@ -94,11 +98,13 @@ final class StreamPipeline: CameraCaptureDelegate {
         var windowStart: CFTimeInterval = 0
         var framesSent = 0
         var bytesSent = 0
+        var bytesAcked = 0
         var framesDropped = 0
         var sourceFramesDropped = 0
         var rttSamples: [CFTimeInterval] = []
         var congestedWindows = 0
         var lastBitrateDecrease: CFTimeInterval = 0
+        var lastBitrateIncrease: CFTimeInterval = 0
     }
 
     private let state = OSAllocatedUnfairLock(initialState: State())
@@ -133,11 +139,13 @@ final class StreamPipeline: CameraCaptureDelegate {
                 $0.windowStart = now
                 $0.framesSent = 0
                 $0.bytesSent = 0
+                $0.bytesAcked = 0
                 $0.framesDropped = 0
                 $0.sourceFramesDropped = 0
                 $0.rttSamples.removeAll()
                 $0.congestedWindows = 0
                 $0.lastBitrateDecrease = now
+                $0.lastBitrateIncrease = now
             }
         }
         camera.start(settings: settings)
@@ -172,6 +180,7 @@ final class StreamPipeline: CameraCaptureDelegate {
                 if first.sequence == sequence, s.rttSamples.count < 120 {
                     s.rttSamples.append(now - first.sentAt)
                 }
+                s.bytesAcked += first.bytes
                 s.inFlight.removeFirst()
             }
         }
@@ -214,7 +223,7 @@ final class StreamPipeline: CameraCaptureDelegate {
         let bytes = frame.message.count + (formatMessage?.count ?? 0)
         if let formatMessage { send(formatMessage) }
         state.withLock { s in
-            s.inFlight.append(InFlightFrame(sequence: frame.sequence, sentAt: now))
+            s.inFlight.append(InFlightFrame(sequence: frame.sequence, sentAt: now, bytes: bytes))
             s.framesSent += 1
             s.bytesSent += bytes
         }
@@ -253,25 +262,41 @@ final class StreamPipeline: CameraCaptureDelegate {
             let oldestWait = s.inFlight.first.map { now - $0.sentAt } ?? 0
             let delay = max(queueDelay, oldestWait > s.policy.congestedDelay * 2 ? oldestWait : 0)
 
+            let sentRate = Double(s.bytesSent * 8) / elapsed
+            let deliveredRate = Double(s.bytesAcked * 8) / elapsed
             var target = s.targetBitrate
             if s.framesDropped > 0 {
-                // The link was stuck: back off firmly.
-                target = max(minBitrate, Int(Double(target) * 0.7))
-                s.lastBitrateDecrease = now
+                // The link was stuck: back off firmly, once per episode.
+                // Frames stay dropped until the backlog is acknowledged, so
+                // one stall can span two windows; a second cut right away
+                // would act on no new information.
+                if now - s.lastBitrateDecrease > 1.5 {
+                    target = max(minBitrate, Int(Double(target) * 0.7))
+                    s.lastBitrateDecrease = now
+                }
                 s.congestedWindows = 0
             } else if delay > s.policy.congestedDelay {
-                // A queue is building. Back off gently, and only if it
-                // persists, so a single slow second doesn't cost quality.
+                // A queue is building. Act on the second such window, or at
+                // once when it is already long.
                 s.congestedWindows += 1
-                if s.congestedWindows >= 2 {
-                    target = max(minBitrate, Int(Double(target) * 0.85))
+                if s.congestedWindows >= 2 || delay > s.policy.congestedDelay * 2,
+                   now - s.lastBitrateDecrease > 1 {
+                    // Land just below what the link delivered in one step,
+                    // but never cut more than 40% at once (a hiccup during a
+                    // quiet scene delivers little without meaning much).
+                    let cut = max(Double(target) * 0.6, min(Double(target) * 0.85, deliveredRate * 0.9))
+                    target = max(minBitrate, Int(cut))
                     s.lastBitrateDecrease = now
                     s.congestedWindows = 0
                 }
-            } else {
+            } else if delay < s.policy.clearDelay {
                 s.congestedWindows = 0
-                if delay < s.policy.clearDelay, now - s.lastBitrateDecrease > 2, target < ceiling {
+                // Probe upwards only while the stream uses most of the
+                // target, and give each step time to show its effect.
+                if sentRate >= 0.7 * Double(target), target < ceiling,
+                   now - s.lastBitrateDecrease > 2, now - s.lastBitrateIncrease >= 2 {
                     target = min(ceiling, Int(Double(target) * 1.1) + 200_000)
+                    s.lastBitrateIncrease = now
                 }
             }
             target = min(target, ceiling)
@@ -285,13 +310,16 @@ final class StreamPipeline: CameraCaptureDelegate {
                 fps: Double(s.framesSent) / elapsed,
                 bitrate: Int(Double(s.bytesSent * 8) / elapsed),
                 targetBitrate: s.targetBitrate,
-                latencyMs: (median ?? 0) * 1000,
+                // No ack this window (a stall): the oldest frame's wait is a
+                // lower bound on the round trip.
+                latencyMs: (median ?? oldestWait) * 1000,
                 queueDelayMs: delay * 1000,
                 droppedFrames: s.framesDropped,
                 sourceDroppedFrames: s.sourceFramesDropped)
             s.windowStart = now
             s.framesSent = 0
             s.bytesSent = 0
+            s.bytesAcked = 0
             s.framesDropped = 0
             s.sourceFramesDropped = 0
             s.rttSamples.removeAll(keepingCapacity: true)

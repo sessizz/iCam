@@ -150,7 +150,11 @@ final class PlayoutBuffer: @unchecked Sendable {
         let target = fastest + delay
         let applied: CFTimeInterval
         if let offset {
-            applied = min(max(target, offset - Self.maxShrinkPerFrame), offset + Self.maxGrowthPerFrame)
+            // Slew toward the target, but never hold frames longer than the
+            // cap (e.g. when the first frame after a reset, always a large
+            // key frame, seeded a slow transit).
+            applied = min(max(target, offset - Self.maxShrinkPerFrame), offset + Self.maxGrowthPerFrame,
+                          fastest + Self.maxDelay)
         } else {
             applied = target
         }

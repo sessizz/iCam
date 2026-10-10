@@ -145,6 +145,7 @@ final class AppModel {
         }
         previewVisible = visible
         preview.isActive = visible
+        devices.setDiscoveryWanted(visible)
         updateDemand()
     }
 

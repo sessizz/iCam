@@ -254,6 +254,8 @@ final class PhoneModel {
         if cameraAuthorization != .authorized {
             interruption = String(localized: "Camera access is off. Allow it in iPhone Settings › iCam.")
         }
+        // Stats are only current while the camera produces frames.
+        let linkStatsValid = isStreaming && camera.isRunning && stats.latencyMs > 0
         return PhoneStatus(
             lenses: camera.lenses,
             currentLensID: camera.currentLensID ?? settings.lensID,
@@ -267,8 +269,8 @@ final class PhoneModel {
             isCharging: device.batteryState == .charging || device.batteryState == .full,
             thermalState: ProcessInfo.processInfo.thermalState.rawValue,
             bitrate: pipeline.currentBitrate,
-            roundTripMs: isStreaming ? Int(stats.latencyMs.rounded()) : nil,
-            queueDelayMs: isStreaming ? Int(stats.queueDelayMs.rounded()) : nil,
+            roundTripMs: linkStatsValid ? Int(stats.latencyMs.rounded()) : nil,
+            queueDelayMs: linkStatsValid ? Int(stats.queueDelayMs.rounded()) : nil,
             droppedFrames: isStreaming ? droppedSinceStatus : nil,
             sourceDroppedFrames: isStreaming ? sourceDroppedSinceStatus : nil)
     }

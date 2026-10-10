@@ -66,6 +66,7 @@ final class PeerServer {
     private var isRunning = false
     private var listenerReady: [TransportKind: Bool] = [:]
     private var wifiPeerToPeer = true
+    private var peerToPeerWork: DispatchWorkItem?
 
     // MARK: Lifecycle
 
@@ -297,6 +298,27 @@ final class PeerServer {
         } else {
             wanted = active == nil
         }
+        peerToPeerWork?.cancel()
+        peerToPeerWork = nil
+        guard wanted != wifiPeerToPeer else { return }
+        if wanted, active == nil {
+            // A Mac that just lost the cable (or the network) usually comes
+            // back over Wi-Fi within moments: keep the current listener and
+            // its Bonjour registration up for it instead of re-registering
+            // under a new port right now.
+            let work = DispatchWorkItem { [weak self] in
+                guard let self, self.active == nil else { return }
+                self.peerToPeerWork = nil
+                self.applyPeerToPeer(true)
+            }
+            peerToPeerWork = work
+            queue.asyncAfter(deadline: .now() + 5, execute: work)
+            return
+        }
+        applyPeerToPeer(wanted)
+    }
+
+    private func applyPeerToPeer(_ wanted: Bool) {
         guard wanted != wifiPeerToPeer else { return }
         wifiPeerToPeer = wanted
         log.info("Peer-to-peer Wi-Fi advertising \(wanted ? "on" : "off", privacy: .public)")

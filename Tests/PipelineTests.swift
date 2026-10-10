@@ -128,9 +128,15 @@ enum PipelineTests {
         func maxGap(_ times: [CFTimeInterval]) -> Double {
             zip(times, times.dropFirst()).map { $1 - $0 }.max() ?? 0
         }
+        // A frame can't be shown before it arrives (frames come out in
+        // capture order, so outputs[i] is frame i). Without this, a buffer
+        // that adds no delay at all would pass too.
+        let early = zip(outputs, arrivals).filter { $0 < $1 - 0.002 }.count
+        expect(early == 0, "playout: \(early) frame(s) left before they arrived")
+        let shown = zip(outputs, arrivals).map { max($0, $1) }
         let inputGap = maxGap(Array(arrivals[15...]))
-        let outputGap = maxGap(Array(outputs[15...]))
-        let pace = (outputs[total - 1] - outputs[15]) / Double(total - 1 - 15)
+        let outputGap = maxGap(Array(shown[15...]))
+        let pace = (shown[total - 1] - shown[15]) / Double(total - 1 - 15)
         print(String(format: "playout: largest gap %.0f ms in, %.0f ms out; %.1f ms per frame; delay %.0f ms",
                      inputGap * 1000, outputGap * 1000, pace * 1000, buffer.currentDelay * 1000))
         expect(inputGap > 0.09, "playout: the test produces stalls")

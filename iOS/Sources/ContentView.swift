@@ -47,6 +47,10 @@ private struct IdleView: View {
     let model: PhoneModel
     @Binding var showSettings: Bool
     @Environment(\.openURL) private var openURL
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
+    /// Landscape iPhones have very little height; shrink the hero icon.
+    private var compact: Bool { verticalSizeClass == .compact }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -64,13 +68,13 @@ private struct IdleView: View {
             }
             Spacer()
 
-            VStack(spacing: 20) {
+            VStack(spacing: compact ? 12 : 20) {
                 ZStack {
                     Circle()
                         .fill(model.host == nil ? Color.white.opacity(0.08) : Color.green.opacity(0.18))
-                        .frame(width: 120, height: 120)
+                        .frame(width: compact ? 76 : 120, height: compact ? 76 : 120)
                     Image(systemName: "web.camera.fill")
-                        .font(.system(size: 50, weight: .medium))
+                        .font(.system(size: compact ? 32 : 50, weight: .medium))
                         .foregroundStyle(model.host == nil ? Color.white : Color.green)
                         .symbolEffect(.pulse, isActive: model.host == nil)
                 }

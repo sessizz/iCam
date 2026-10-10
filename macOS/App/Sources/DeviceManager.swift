@@ -368,6 +368,10 @@ final class DeviceManager {
 
     private func activate(_ connection: PhoneConnection, reply: HelloReply) {
         active = connection
+        let pipeline = self.pipeline
+        // Frames may have been skipped while switching connections; resume
+        // cleanly from the key frame the (re)start request produces.
+        PhoneConnection.queue.async { pipeline.requireKeyFrame() }
         connection.attach(pipeline)
         connected = ConnectedPhone(deviceID: reply.deviceID, name: reply.deviceName,
                                    model: reply.deviceModel, transport: connection.kind)

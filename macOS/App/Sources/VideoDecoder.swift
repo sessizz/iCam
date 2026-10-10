@@ -35,6 +35,12 @@ final class VideoDecoder {
         waitingForKeyFrame = true
     }
 
+    /// Drop frames until the next key frame (e.g. after a connection
+    /// hand-over where some frames may have been skipped).
+    func requireKeyFrame() {
+        waitingForKeyFrame = true
+    }
+
     func reset() {
         invalidate()
         formatDescription = nil

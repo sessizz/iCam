@@ -119,6 +119,7 @@ final class VideoEncoder {
         ]
 
         var created: VTCompressionSession?
+        var lowLatency = false
         // Low-latency rate control first; fall back to a plain hardware
         // encoder if this codec/OS combination doesn't support it.
         let specifications: [[CFString: Any]] = [
@@ -132,7 +133,10 @@ final class VideoEncoder {
                 imageBufferAttributes: sourceAttributes as CFDictionary,
                 compressedDataAllocator: nil, outputCallback: nil, refcon: nil,
                 compressionSessionOut: &created)
-            if status == noErr, created != nil { break }
+            if status == noErr, created != nil {
+                lowLatency = !specification.isEmpty
+                break
+            }
             log.notice("VTCompressionSessionCreate failed (\(status)) with spec \(specification.count)")
             created = nil
         }
@@ -156,7 +160,10 @@ final class VideoEncoder {
         if codec == .hevc {
             set(kVTCompressionPropertyKey_ProfileLevel, kVTProfileLevel_HEVC_Main_AutoLevel)
         } else {
-            set(kVTCompressionPropertyKey_ProfileLevel, kVTProfileLevel_H264_High_AutoLevel)
+            // Low-latency mode supports the constrained profiles (no B-frames,
+            // which we don't use anyway).
+            set(kVTCompressionPropertyKey_ProfileLevel,
+                lowLatency ? kVTProfileLevel_H264_ConstrainedHigh_AutoLevel : kVTProfileLevel_H264_High_AutoLevel)
             set(kVTCompressionPropertyKey_H264EntropyMode, kVTH264EntropyMode_CABAC)
         }
         set(kVTCompressionPropertyKey_ColorPrimaries, kCVImageBufferColorPrimaries_ITU_R_709_2)
@@ -168,7 +175,7 @@ final class VideoEncoder {
         self.session = session
         sessionWidth = width
         sessionHeight = height
-        log.info("Encoder ready: \(self.codec.rawValue, privacy: .public) \(width)x\(height) @ \(self.bitrate) bps")
+        log.info("Encoder ready: \(self.codec.rawValue, privacy: .public) \(width)x\(height) @ \(self.bitrate) bps, low latency: \(lowLatency)")
         return true
     }
 

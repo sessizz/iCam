@@ -105,6 +105,10 @@ final class VideoPipeline: @unchecked Sendable {
         publishStats(force: true, idle: true)
     }
 
+    func requireKeyFrame() {
+        decoder.requireKeyFrame()
+    }
+
     func handleFormat(_ packet: VideoFormatPacket) {
         codec = packet.codec
         decoder.setFormat(packet)

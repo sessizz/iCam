@@ -93,6 +93,7 @@ final class PhoneModel {
         statusTask = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(5))
+                if let self { self.camera = self.pipeline.camera.snapshot() }
                 self?.sendStatus(force: true)
             }
         }
@@ -160,6 +161,7 @@ final class PhoneModel {
             wifiStatus = status
         case .connected(let host):
             self.host = host
+            camera = pipeline.camera.snapshot()
             lastSentStatus = nil
             sendStatus(force: true)
         case .disconnected:

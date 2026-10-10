@@ -52,3 +52,15 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run
         run: swiftc -parse-as-library -O Shared/ICamProtocol.swift Shared/MessageFraming.swift Tests/ProtocolTests.swift -o protocol-tests && ./protocol-tests
+
+  pipeline-tests:
+    name: Video pipeline tests
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Encode → wire → decode
+        run: |
+          swiftc -parse-as-library -O Shared/*.swift macOS/Shared/*.swift \
+            iOS/Sources/VideoEncoder.swift macOS/App/Sources/VideoDecoder.swift \
+            macOS/App/Sources/VideoPipeline.swift Tests/PipelineTests.swift -o pipeline-tests
+          ./pipeline-tests

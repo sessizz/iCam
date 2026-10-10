@@ -1,0 +1,26 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "NSCameraUsageDescription": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCam, iPhone kameranızı web kamerası olarak kullanabilmeniz için Mac'inize gönderir."
+          }
+        }
+      }
+    },
+    "NSLocalNetworkUsageDescription": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCam, Mac'inizi bulmak ve Wi-Fi üzerinden görüntü aktarmak için yerel ağı kullanır."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

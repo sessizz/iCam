@@ -37,6 +37,7 @@ final class VirtualCameraSink {
     private var lastMessage: String?
     private var devicesListenerInstalled = false
     private var state: State = .searching
+    private var pollTicks = 0
 
     private(set) var droppedFrames = 0
 
@@ -268,8 +269,11 @@ final class VirtualCameraSink {
         timer.schedule(deadline: .now() + 0.25, repeating: 0.25)
         timer.setEventHandler { [weak self] in
             guard let self else { return }
+            self.pollTicks += 1
             if self.bufferQueue == nil {
-                self.connect()
+                // Device enumeration is comparatively expensive; the device
+                // list listener covers the common case, this is a fallback.
+                if self.pollTicks % 8 == 0 { self.connect() }
             } else {
                 self.pollDemand()
             }

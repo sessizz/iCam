@@ -71,8 +71,9 @@ final class FrameConformer {
     }
 }
 
-/// Runs on the shared connection queue.
-final class VideoPipeline {
+/// Confined to `PhoneConnection.queue` (only `framing` is touched from
+/// elsewhere, behind a lock).
+final class VideoPipeline: @unchecked Sendable {
     /// Receives every conformed frame (virtual camera).
     var cameraOutput: ((CVPixelBuffer) -> Void)?
     /// Receives every conformed frame while the preview is visible.

@@ -1,0 +1,326 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "A USB cable gives the lowest latency and keeps your iPhone charged.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "USB kablo en düşük gecikmeyi sağlar ve iPhone'unuzu şarjda tutar."
+          }
+        }
+      }
+    },
+    "Advertised as “%@”": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Görünen ad: “%@”"
+          }
+        }
+      }
+    },
+    "Camera access is off": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kamera erişimi kapalı"
+          }
+        }
+      }
+    },
+    "Camera access is off. Allow it in iPhone Settings › iCam.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kamera erişimi kapalı. iPhone Ayarlar › iCam bölümünden izin verin."
+          }
+        }
+      }
+    },
+    "Camera interrupted": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kamera kesintiye uğradı"
+          }
+        }
+      }
+    },
+    "Camera is in use by another app": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kamera başka bir uygulama tarafından kullanılıyor"
+          }
+        }
+      }
+    },
+    "Camera unavailable in Split View": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bölünmüş Görünüm'de kamera kullanılamıyor"
+          }
+        }
+      }
+    },
+    "Connect this iPhone with a cable or put it on the same Wi-Fi network, then open iCam on your Mac.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu iPhone'u kabloyla bağlayın ya da aynı Wi-Fi ağına bağlayın, ardından Mac'inizde iCam'i açın."
+          }
+        }
+      }
+    },
+    "Connected to %@": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bağlı: %@"
+          }
+        }
+      }
+    },
+    "Done": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitti"
+          }
+        }
+      }
+    },
+    "Front": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ön"
+          }
+        }
+      }
+    },
+    "Keep iCam open. The screen dims automatically while streaming.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCam'i açık tutun. Yayın sırasında ekran otomatik olarak kararır."
+          }
+        }
+      }
+    },
+    "LIVE": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CANLI"
+          }
+        }
+      }
+    },
+    "Name shown on your Mac": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac'te görünen ad"
+          }
+        }
+      }
+    },
+    "No camera available": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kullanılabilir kamera yok"
+          }
+        }
+      }
+    },
+    "Open Settings": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ayarları Aç"
+          }
+        }
+      }
+    },
+    "Over Wi-Fi, allow Local Network access when asked.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wi-Fi ile kullanmak için sorulduğunda Yerel Ağ erişimine izin verin."
+          }
+        }
+      }
+    },
+    "Ready": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hazır"
+          }
+        }
+      }
+    },
+    "Settings": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ayarlar"
+          }
+        }
+      }
+    },
+    "Starting": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Başlatılıyor"
+          }
+        }
+      }
+    },
+    "Streaming to %@": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yayın: %@"
+          }
+        }
+      }
+    },
+    "Tap to show preview": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Önizlemeyi göstermek için dokunun"
+          }
+        }
+      }
+    },
+    "Telephoto": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Telefoto"
+          }
+        }
+      }
+    },
+    "The camera turns on automatically when an app on your Mac uses it.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac'inizdeki bir uygulama kamerayı kullandığında kamera otomatik olarak açılır."
+          }
+        }
+      }
+    },
+    "Tips": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İpuçları"
+          }
+        }
+      }
+    },
+    "Turn iPhone sideways for the best picture": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En iyi görüntü için iPhone'u yatay çevirin"
+          }
+        }
+      }
+    },
+    "Ultra Wide": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ultra Geniş"
+          }
+        }
+      }
+    },
+    "Use the rear camera in landscape for the best picture.": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En iyi görüntü için arka kamerayı yatay konumda kullanın."
+          }
+        }
+      }
+    },
+    "Waiting for your Mac": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac'iniz bekleniyor"
+          }
+        }
+      }
+    },
+    "Wide": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geniş"
+          }
+        }
+      }
+    },
+    "iCam is in the background": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCam arka planda"
+          }
+        }
+      }
+    },
+    "iPhone is too hot": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone çok ısındı"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

@@ -1,0 +1,36 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "NSCameraUsageDescription": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCam, iPhone'unuzun görüntüsünü iCam sanal kamerasına aktarmak için kamera erişimine ihtiyaç duyar."
+          }
+        }
+      }
+    },
+    "NSLocalNetworkUsageDescription": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCam, iPhone'unuzu bulmak ve Wi-Fi üzerinden görüntü almak için yerel ağı kullanır."
+          }
+        }
+      }
+    },
+    "NSSystemExtensionUsageDescription": {
+      "localizations": {
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCam, iPhone'unuzu her uygulamada web kamerası olarak kullanabilmeniz için Mac'inize bir kamera ekler."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

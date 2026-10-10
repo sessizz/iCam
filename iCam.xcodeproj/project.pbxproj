@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0410E4ABAA2C4E61B1C42F26 /* WindowVisibility.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = 7F1A9967A3B4DEBF72A60BED /* WindowVisibility.swift */;
+		};
 		18D909C3DDB7CE5DD13D2D26 /* VideoDecoder.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = 2E0143187B502BB5BA6EEFFD /* VideoDecoder.swift */;
@@ -72,6 +76,10 @@
 			isa = PBXBuildFile;
 			fileRef = 461C48F566E6AA3D84D4ADA9 /* VirtualCameraSink.swift */;
 		};
+		6B16AEA17DAA9C4209AB5701 /* InfoPlist.xcstrings in Resources */ = {
+			isa = PBXBuildFile;
+			fileRef = 5D8350C8804B047E27CD82F3 /* InfoPlist.xcstrings */;
+		};
 		774DA7CDC1C1CC1976327F76 /* USBMux.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = 5ABB4502162E48E283F0AB05 /* USBMux.swift */;
@@ -108,6 +116,10 @@
 			isa = PBXBuildFile;
 			fileRef = 7A34540D4E92C9417C17D181 /* MessageFraming.swift */;
 		};
+		AE2B9FF48C8B4EA04DC99A71 /* InfoPlist.xcstrings in Resources */ = {
+			isa = PBXBuildFile;
+			fileRef = 8E034BBD2ECB45AEB39A7DAB /* InfoPlist.xcstrings */;
+		};
 		B76A71C57A3FF86019CBD2C9 /* VideoEncoder.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = E370841F6741880848A961EE /* VideoEncoder.swift */;
@@ -127,6 +139,14 @@
 		CD8E438D67860E43DDC88485 /* Assets.xcassets in Resources */ = {
 			isa = PBXBuildFile;
 			fileRef = 03D88F4CCE243B3D68115A1D /* Assets.xcassets */;
+		};
+		CFDB4D599E43BEA76B04931A /* Localizable.xcstrings in Resources */ = {
+			isa = PBXBuildFile;
+			fileRef = 837D413570848DFAA0C6AD06 /* Localizable.xcstrings */;
+		};
+		DDB2E5F8638FF4460F737DED /* Localizable.xcstrings in Resources */ = {
+			isa = PBXBuildFile;
+			fileRef = 2B038217F124AE23B2D34BF8 /* Localizable.xcstrings */;
 		};
 		DF85529384EC3B6499A69A75 /* ICamMacApp.swift in Sources */ = {
 			isa = PBXBuildFile;
@@ -203,6 +223,12 @@
 			path = PlaceholderRenderer.swift;
 			sourceTree = "<group>";
 		};
+		2B038217F124AE23B2D34BF8 /* Localizable.xcstrings */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.json.xcstrings;
+			path = Localizable.xcstrings;
+			sourceTree = "<group>";
+		};
 		2E0143187B502BB5BA6EEFFD /* VideoDecoder.swift */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
@@ -257,6 +283,12 @@
 			path = Info.plist;
 			sourceTree = "<group>";
 		};
+		5D8350C8804B047E27CD82F3 /* InfoPlist.xcstrings */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.json.xcstrings;
+			path = InfoPlist.xcstrings;
+			sourceTree = "<group>";
+		};
 		681F860BF18F8371AADAF60C /* CameraCapture.swift */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
@@ -288,6 +320,18 @@
 			path = PhoneConnection.swift;
 			sourceTree = "<group>";
 		};
+		7F1A9967A3B4DEBF72A60BED /* WindowVisibility.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = WindowVisibility.swift;
+			sourceTree = "<group>";
+		};
+		837D413570848DFAA0C6AD06 /* Localizable.xcstrings */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.json.xcstrings;
+			path = Localizable.xcstrings;
+			sourceTree = "<group>";
+		};
 		862A3E2F968564CCA606371B /* CameraExtension.entitlements */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = text.plist.entitlements;
@@ -304,6 +348,12 @@
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
 			path = WelcomeView.swift;
+			sourceTree = "<group>";
+		};
+		8E034BBD2ECB45AEB39A7DAB /* InfoPlist.xcstrings */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.json.xcstrings;
+			path = InfoPlist.xcstrings;
 			sourceTree = "<group>";
 		};
 		8FB0C58D2E397D187366A921 /* Signing.xcconfig */ = {
@@ -521,6 +571,7 @@
 				9A75F5B47554265538DF76F4 /* VideoPipeline.swift */,
 				461C48F566E6AA3D84D4ADA9 /* VirtualCameraSink.swift */,
 				8D31FFCC955F8FA17B6AC44D /* WelcomeView.swift */,
+				7F1A9967A3B4DEBF72A60BED /* WindowVisibility.swift */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -539,6 +590,8 @@
 				F958E191CF947E255621B662 /* Assets.xcassets */,
 				EE8B7B8D83670C22E1F25BC9 /* iCam.entitlements */,
 				FF0B2503BA1E19943C4BAD0A /* Info.plist */,
+				5D8350C8804B047E27CD82F3 /* InfoPlist.xcstrings */,
+				837D413570848DFAA0C6AD06 /* Localizable.xcstrings */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -548,6 +601,8 @@
 			children = (
 				03D88F4CCE243B3D68115A1D /* Assets.xcassets */,
 				EDC7736629EA06544BC4FC03 /* Info.plist */,
+				8E034BBD2ECB45AEB39A7DAB /* InfoPlist.xcstrings */,
+				2B038217F124AE23B2D34BF8 /* Localizable.xcstrings */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -718,6 +773,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				CD8E438D67860E43DDC88485 /* Assets.xcassets in Resources */,
+				AE2B9FF48C8B4EA04DC99A71 /* InfoPlist.xcstrings in Resources */,
+				DDB2E5F8638FF4460F737DED /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -726,6 +783,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				397A761EBD6F1D37CA1A92D0 /* Assets.xcassets in Resources */,
+				6B16AEA17DAA9C4209AB5701 /* InfoPlist.xcstrings in Resources */,
+				CFDB4D599E43BEA76B04931A /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -771,6 +830,7 @@
 				4BB3429B51DE78F7D433F1C2 /* VideoPipeline.swift in Sources */,
 				5B77A852FD1EA3A6CA531336 /* VirtualCameraSink.swift in Sources */,
 				C3F9EE7E9C1F503621DABDA6 /* WelcomeView.swift in Sources */,
+				0410E4ABAA2C4E61B1C42F26 /* WindowVisibility.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

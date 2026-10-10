@@ -104,6 +104,9 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
 
     // State below is confined to `queue`.
     private var sourceClientCount = 0
+    /// Clients that were allowed to start the source stream; used to recover
+    /// the demand state if an app quits or crashes without stopping it.
+    private var sourceClientIDs: Set<UUID> = []
     private var activeFormatIndex = 0
     private var sinkClient: CMIOExtensionClient?
     private var sinkGeneration = 0
@@ -203,6 +206,11 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
 
     // MARK: Source stream (video apps)
 
+    func authorizeSource(_ client: CMIOExtensionClient) -> Bool {
+        queue.async { self.sourceClientIDs.insert(client.clientID) }
+        return true
+    }
+
     func sourceStarted() {
         queue.async {
             self.sourceClientCount += 1
@@ -270,6 +278,14 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
 
     func clientDisconnected(_ client: CMIOExtensionClient) {
         queue.async {
+            if self.sourceClientIDs.remove(client.clientID) != nil,
+               self.sourceClientIDs.isEmpty, self.sourceClientCount > 0 {
+                log.notice("Last camera client went away without stopping; resetting")
+                self.sourceClientCount = 0
+                self.placeholderTimer?.cancel()
+                self.placeholderTimer = nil
+                self.publishDemand(false)
+            }
             guard let sinkClient = self.sinkClient, sinkClient.clientID == client.clientID else { return }
             self.sinkClient = nil
             self.sinkRunning = false
@@ -426,7 +442,9 @@ final class SourceStream: NSObject, CMIOExtensionStreamSource {
         }
     }
 
-    func authorizedToStartStream(for client: CMIOExtensionClient) -> Bool { true }
+    func authorizedToStartStream(for client: CMIOExtensionClient) -> Bool {
+        device.authorizeSource(client)
+    }
 
     func startStream() throws { device.sourceStarted() }
 

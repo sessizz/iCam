@@ -24,7 +24,7 @@ struct MenuContentView: View {
         }
         .padding(14)
         .frame(width: 340)
-        .onAppear { model.setPreviewVisible(true) }
+        .background(WindowVisibilityReader { visible in model.setPreviewVisible(visible) })
         .onDisappear { model.setPreviewVisible(false) }
     }
 

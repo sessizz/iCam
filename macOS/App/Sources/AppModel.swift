@@ -3,6 +3,7 @@
 //  iCam (Mac)
 //
 
+import AppKit
 import AVFoundation
 import Observation
 import ServiceManagement

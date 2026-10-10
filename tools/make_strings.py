@@ -85,6 +85,8 @@ MAC = {
     "Reopen iCam": "iCam'i Yeniden Aç",
     "An older copy of the iCam camera is still in use. Quit apps that use the camera (OBS, Zoom, FaceTime…), then reopen iCam. If that doesn't help, restart your Mac.":
         "iCam kamerasının eski bir kopyası hâlâ kullanımda. Kamerayı kullanan uygulamaları (OBS, Zoom, FaceTime…) kapatın, ardından iCam'i yeniden açın. Sorun sürerse Mac'inizi yeniden başlatın.",
+    "macOS didn't start the updated iCam camera. Quit apps that use the camera (OBS, Zoom, FaceTime…), then turn iCam off and on under Camera Extensions in System Settings, or log out and back in.":
+        "macOS güncellenen iCam kamerasını başlatmadı. Kamerayı kullanan uygulamaları (OBS, Zoom, FaceTime…) kapatın, ardından Sistem Ayarları'ndaki Kamera Uzantıları bölümünde iCam'i kapatıp yeniden açın ya da oturumu kapatıp yeniden açın.",
     "macOS hasn't made the iCam camera available to this app yet. Quit apps that use the camera (OBS, Zoom, FaceTime…), then reopen iCam. If that doesn't help, restart your Mac.":
         "macOS, iCam kamerasını bu uygulamaya henüz açmadı. Kamerayı kullanan uygulamaları (OBS, Zoom, FaceTime…) kapatın, ardından iCam'i yeniden açın. Sorun sürerse Mac'inizi yeniden başlatın.",
     "Allow camera access for iCam so it can feed the virtual camera.":

@@ -10,6 +10,16 @@ import AppKit
 import SwiftUI
 
 @main
+enum Launcher {
+    static func main() {
+        // A short-lived helper run by the app itself; see CameraProbe.
+        if CommandLine.arguments.contains(CameraProbe.argument) {
+            exit(CameraProbe.runInProbeProcess())
+        }
+        MainActor.assumeIsolated { ICamMacApp.main() }
+    }
+}
+
 struct ICamMacApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 

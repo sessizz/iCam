@@ -295,22 +295,16 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
     // MARK: Sink stream (iCam app)
 
     func authorizeSink(_ client: CMIOExtensionClient) -> Bool {
-        // Only the iCam app that ships this extension may feed frames.
-        let extensionID = Bundle.main.bundleIdentifier ?? ""
-        let appID = extensionID.components(separatedBy: ".").dropLast().joined(separator: ".")
-        // Be lenient about how the identifier is spelled (team prefixes etc.)
-        // but never let an unrelated app inject video.
-        let allowed = appID.isEmpty || (client.signingID.map { $0.contains(appID) } ?? true)
-        let signingID = client.signingID ?? "unsigned"
-        let authorization = "sink client \(signingID) (pid \(client.pid)) \(allowed ? "allowed" : "rejected")"
+        // Always allow, like OBS and Apple's template. CMIOExtensionClient's
+        // signingID is unreliable (nil or "unknown" for every client on
+        // recent macOS), and rejecting a client surfaces in the app only as
+        // an unexplained CMIODeviceStartStream error (-4).
+        let signingID = client.signingID ?? "nil"
+        let authorization = "sink client \(signingID) (pid \(client.pid)) allowed"
         sinkReport.withLock { $0.authorization = authorization }
-        if allowed {
-            log.notice("Sink client \(signingID, privacy: .public) allowed")
-            queue.async { self.sinkClient = client }
-        } else {
-            log.error("Rejected sink client \(signingID, privacy: .public), expected \(appID, privacy: .public)")
-        }
-        return allowed
+        log.notice("Sink client \(signingID, privacy: .public) (pid \(client.pid)) allowed")
+        queue.async { self.sinkClient = client }
+        return true
     }
 
     func sinkStarted() {

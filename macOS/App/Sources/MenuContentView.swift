@@ -189,8 +189,19 @@ private struct ExtensionBanner: View {
                         }
                     }
                 }
-            } else if model.cameraMissing || model.extensionOutdated {
-                banner(icon: "exclamationmark.triangle.fill", color: .orange, text: missingCameraText) {
+            } else if model.extensionOutdated {
+                banner(icon: "exclamationmark.triangle.fill", color: .orange,
+                       text: Text("An older copy of the iCam camera is still in use. Quit apps that use the camera (OBS, Zoom, FaceTime…), then reopen iCam. If that doesn't help, restart your Mac.")) {
+                    Button("Reopen iCam") { model.relaunch() }
+                }
+            } else if model.cameraMissing, model.cameraVisibleToNewProcess == false {
+                banner(icon: "exclamationmark.triangle.fill", color: .orange,
+                       text: Text("macOS didn't start the updated iCam camera. Quit apps that use the camera (OBS, Zoom, FaceTime…), then turn iCam off and on under Camera Extensions in System Settings, or log out and back in.")) {
+                    Button("Open Settings") { model.extensionManager.openApprovalSettings() }
+                }
+            } else if model.cameraMissing {
+                banner(icon: "exclamationmark.triangle.fill", color: .orange,
+                       text: Text("macOS hasn't made the iCam camera available to this app yet. Quit apps that use the camera (OBS, Zoom, FaceTime…), then reopen iCam. If that doesn't help, restart your Mac.")) {
                     Button("Reopen iCam") { model.relaunch() }
                 }
             } else if case .failed(let reason) = model.sinkState {
@@ -220,13 +231,6 @@ private struct ExtensionBanner: View {
                 Button("Retry") { model.extensionManager.activate() }
             }
         }
-    }
-
-    private var missingCameraText: Text {
-        if model.extensionManager.hasOutgoingCopy || model.extensionOutdated {
-            return Text("An older copy of the iCam camera is still in use. Quit apps that use the camera (OBS, Zoom, FaceTime…), then reopen iCam. If that doesn't help, restart your Mac.")
-        }
-        return Text("macOS hasn't made the iCam camera available to this app yet. Quit apps that use the camera (OBS, Zoom, FaceTime…), then reopen iCam. If that doesn't help, restart your Mac.")
     }
 
     private func banner<Accessory: View>(icon: String, color: Color, text: Text,

@@ -30,16 +30,11 @@ final class ExtensionManager: NSObject {
     /// entry per installed copy, e.g. "1.0/1791621540 [activated enabled]".
     private(set) var systemRecords: [String] = []
 
-    /// An older copy is still loaded (usually because a video app kept using
-    /// the camera during an update). macOS then may not offer the new copy's
-    /// camera to apps until the old one is gone.
-    var hasOutgoingCopy: Bool {
-        systemRecords.contains { $0.contains("terminat") || $0.contains("uninstall") }
-    }
-
     /// The bundled extension replaced an installed copy while this process
     /// was running.
     private(set) var replacedDuringThisRun = false
+    /// The latest activation kept an installed copy of the same version.
+    @ObservationIgnored private var keptSameVersion = false
 
     @ObservationIgnored private let log = Logger(subsystem: "app.icam.mac", category: "extension")
 
@@ -70,6 +65,7 @@ final class ExtensionManager: NSObject {
             return
         }
         if status != .active { status = .installing }
+        keptSameVersion = false
         let request = OSSystemExtensionRequest.activationRequest(forExtensionWithIdentifier: extensionIdentifier,
                                                                  queue: .main)
         request.delegate = self
@@ -159,6 +155,11 @@ final class ExtensionManager: NSObject {
                 return
             case .requestSuperseded:
                 return
+            case .requestCanceled where keptSameVersion:
+                status = .active
+                log.info("Camera extension already active")
+                refreshSystemRecords()
+                return
             case .authorizationRequired:
                 status = .needsApproval
                 return
@@ -175,15 +176,21 @@ extension ExtensionManager: OSSystemExtensionRequestDelegate {
                              actionForReplacingExtension existing: OSSystemExtensionProperties,
                              withExtension ext: OSSystemExtensionProperties)
         -> OSSystemExtensionRequest.ReplacementAction {
-        // Always install the copy bundled with this app so the extension and
-        // the app speak the same protocol.
+        // Same version: macOS asks anyway when System Extension developer
+        // mode is on. Keep the running copy; replacing it only disrupts apps
+        // using the camera (and macOS sometimes fails to start the new one).
+        if existing.bundleVersion == ext.bundleVersion,
+           existing.bundleShortVersion == ext.bundleShortVersion {
+            MainActor.assumeIsolated { self.keptSameVersion = true }
+            return .cancel
+        }
+        // Otherwise install the copy bundled with this app so the extension
+        // and the app speak the same protocol.
         let from = existing.bundleVersion
         let to = ext.bundleVersion
-        DispatchQueue.main.async {
-            MainActor.assumeIsolated {
-                self.replacedDuringThisRun = true
-                self.log.notice("Replacing camera extension \(from, privacy: .public) with \(to, privacy: .public)")
-            }
+        MainActor.assumeIsolated {
+            self.replacedDuringThisRun = true
+            self.log.notice("Replacing camera extension \(from, privacy: .public) with \(to, privacy: .public)")
         }
         return .replace
     }

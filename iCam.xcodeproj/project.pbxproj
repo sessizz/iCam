@@ -11,6 +11,10 @@
 			isa = PBXBuildFile;
 			fileRef = 7F1A9967A3B4DEBF72A60BED /* WindowVisibility.swift */;
 		};
+		163C642B3D2052627E0889AB /* CameraProbe.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = EFC6BEFF10713BFDF8149DE7 /* CameraProbe.swift */;
+		};
 		18D909C3DDB7CE5DD13D2D26 /* VideoDecoder.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = 2E0143187B502BB5BA6EEFFD /* VideoDecoder.swift */;
@@ -460,6 +464,12 @@
 			path = iCam.entitlements;
 			sourceTree = "<group>";
 		};
+		EFC6BEFF10713BFDF8149DE7 /* CameraProbe.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = CameraProbe.swift;
+			sourceTree = "<group>";
+		};
 		F0D1723D52A06568ECD15EA7 /* DeviceIdentity.swift */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
@@ -558,6 +568,7 @@
 			isa = PBXGroup;
 			children = (
 				31FD16E1B174F396EABAD23F /* AppModel.swift */,
+				EFC6BEFF10713BFDF8149DE7 /* CameraProbe.swift */,
 				D633AB891501C3BC83BC01EA /* DeviceManager.swift */,
 				1C02196FFE73EE217D43AF89 /* ExtensionManager.swift */,
 				2F5C4FF09EF936227C0FF422 /* ICamMacApp.swift */,
@@ -817,6 +828,7 @@
 				ABED8C0521B7821D37C65CA6 /* MessageFraming.swift in Sources */,
 				43C91B1608BE985204CFB15A /* VirtualCameraConstants.swift in Sources */,
 				57B9F32135EA8DA393398EE4 /* AppModel.swift in Sources */,
+				163C642B3D2052627E0889AB /* CameraProbe.swift in Sources */,
 				98C385187851F28F0944C2D1 /* DeviceManager.swift in Sources */,
 				CA50EE669AE71DDAC089D747 /* ExtensionManager.swift in Sources */,
 				DF85529384EC3B6499A69A75 /* ICamMacApp.swift in Sources */,

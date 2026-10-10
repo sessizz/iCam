@@ -58,7 +58,13 @@ extension_fingerprint() {
 }
 APP_BUILD="$(date +%s)"
 FINGERPRINT="$(extension_fingerprint)"
-STATE="$DERIVED/extension-version"
+# Kept outside DerivedData so cleaning build folders doesn't force an update.
+STATE_DIR="$HOME/Library/Application Support/iCam-install"
+mkdir -p "$STATE_DIR"
+STATE="$STATE_DIR/extension-version"
+if [ ! -f "$STATE" ] && [ -f "$DERIVED/extension-version" ]; then
+  cp "$DERIVED/extension-version" "$STATE"
+fi
 EXT_BUILD=""
 if [ -f "$STATE" ]; then
   read -r SAVED_FINGERPRINT SAVED_BUILD < "$STATE" || true

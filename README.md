@@ -155,6 +155,7 @@ swiftc -parse-as-library Shared/ICamProtocol.swift Shared/MessageFraming.swift \
 # Uçtan uca video zinciri (macOS): iPhone kodlayıcısı → kablo → Mac çözücüsü → 1080p uydurma
 swiftc -parse-as-library Shared/*.swift macOS/Shared/*.swift iOS/Sources/VideoEncoder.swift \
   macOS/App/Sources/VideoDecoder.swift macOS/App/Sources/VideoPipeline.swift \
+  macOS/CameraExtension/Sources/PlaceholderRenderer.swift \
   Tests/PipelineTests.swift -o /tmp/pipeline-tests && /tmp/pipeline-tests
 ```
 

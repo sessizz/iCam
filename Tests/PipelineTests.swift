@@ -9,7 +9,8 @@
 //  Run (macOS):
 //    swiftc -parse-as-library Shared/*.swift macOS/Shared/*.swift \
 //      iOS/Sources/VideoEncoder.swift macOS/App/Sources/VideoDecoder.swift \
-//      macOS/App/Sources/VideoPipeline.swift Tests/PipelineTests.swift -o /tmp/pipeline-tests
+//      macOS/App/Sources/VideoPipeline.swift macOS/CameraExtension/Sources/PlaceholderRenderer.swift \
+//      Tests/PipelineTests.swift -o /tmp/pipeline-tests
 //    /tmp/pipeline-tests
 //
 
@@ -31,6 +32,9 @@ enum PipelineTests {
     }
 
     static func main() {
+        placeholder()
+        expect(VirtualCamera.fourCharCode("iCdm") == 0x6943_646D, "four char code")
+        expect(VirtualCamera.extensionPropertyName("iCdm") == "4cc_iCdm_glob_0000", "property name")
         for codec in VideoCodec.allCases {
             run(codec: codec, width: 1920, height: 1080, frames: 90)
             run(codec: codec, width: 1080, height: 1920, frames: 30) // iPhone held in portrait
@@ -40,6 +44,42 @@ enum PipelineTests {
         } else {
             print("\(failures) failure(s)")
             exit(1)
+        }
+    }
+
+    // MARK: Placeholder
+
+    static func placeholder() {
+        let renderer = PlaceholderRenderer()
+        for (width, height) in [(1920, 1080), (1280, 720)] {
+            guard let buffer = renderer.render(message: "Open iCam on your iPhone — çok uzun bir mesaj " +
+                                                        String(repeating: "x", count: 200),
+                                               width: width, height: height) else {
+                expect(false, "placeholder \(width)x\(height) rendered")
+                continue
+            }
+            expect(CVPixelBufferGetWidth(buffer) == width && CVPixelBufferGetHeight(buffer) == height,
+                   "placeholder size")
+            expect(CVPixelBufferGetPixelFormatType(buffer) == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
+                   "placeholder pixel format")
+            // The text/glyph area must contain bright pixels on the dark background.
+            CVPixelBufferLockBaseAddress(buffer, .readOnly)
+            let luma = CVPixelBufferGetBaseAddressOfPlane(buffer, 0)!.assumingMemoryBound(to: UInt8.self)
+            let rowBytes = CVPixelBufferGetBytesPerRowOfPlane(buffer, 0)
+            var bright = 0
+            var maxValue: UInt8 = 0
+            for y in stride(from: height / 4, to: height * 3 / 4, by: 2) {
+                for x in stride(from: width / 4, to: width * 3 / 4, by: 2) {
+                    let value = luma[y * rowBytes + x]
+                    maxValue = max(maxValue, value)
+                    if value > 120 { bright += 1 }
+                }
+            }
+            let corner = luma[4 * rowBytes + 4]
+            CVPixelBufferUnlockBaseAddress(buffer, .readOnly)
+            expect(bright > 200, "placeholder has visible content (\(bright) bright samples, max \(maxValue))")
+            expect(corner < 60, "placeholder background is dark (\(corner))")
+            print("placeholder \(width)x\(height): \(bright) bright samples, background luma \(corner)")
         }
     }
 

@@ -62,5 +62,6 @@ jobs:
         run: |
           swiftc -parse-as-library -O Shared/*.swift macOS/Shared/*.swift \
             iOS/Sources/VideoEncoder.swift macOS/App/Sources/VideoDecoder.swift \
-            macOS/App/Sources/VideoPipeline.swift Tests/PipelineTests.swift -o pipeline-tests
+            macOS/App/Sources/VideoPipeline.swift macOS/CameraExtension/Sources/PlaceholderRenderer.swift \
+            Tests/PipelineTests.swift -o pipeline-tests
           ./pipeline-tests

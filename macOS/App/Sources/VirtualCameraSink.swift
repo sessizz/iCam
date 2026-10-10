@@ -283,16 +283,25 @@ final class VirtualCameraSink: @unchecked Sendable {
         guard CMIOObjectGetPropertyData(device, &address, 0, nil, dataSize, &used, &streams) == noErr else {
             return nil
         }
-        // Direction 1 = input to the device = sink.
+        // Only iCam's sink stream declares the custom placeholder-message
+        // property, which identifies it unambiguously.
+        for stream in streams {
+            var messageAddress = Self.customAddress(VirtualCamera.messageSelector)
+            if CMIOObjectHasProperty(stream, &messageAddress) { return stream }
+        }
+        // CoreMediaIO follows the CoreAudio convention, seen from the Mac:
+        // 1 = input (the camera stream apps read), 0 = output (the sink fed
+        // by a client).
         for stream in streams {
             var directionAddress = Self.address(CMIOObjectPropertySelector(kCMIOStreamPropertyDirection))
-            var direction: UInt32 = 0
+            var direction: UInt32 = 1
             var directionUsed: UInt32 = 0
             if CMIOObjectGetPropertyData(stream, &directionAddress, 0, nil, UInt32(MemoryLayout<UInt32>.size),
-                                         &directionUsed, &direction) == noErr, direction == 1 {
+                                         &directionUsed, &direction) == noErr, direction == 0 {
                 return stream
             }
         }
+        // Streams are listed in the order the extension added them: source, sink.
         return streams.count > 1 ? streams[1] : nil
     }
 

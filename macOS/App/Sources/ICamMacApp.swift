@@ -43,13 +43,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         model.start()
         observeExtensionStatus()
-
-        // Give the activation request a moment to report before deciding
-        // whether the user needs the setup guide.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
-            guard let self, self.model.needsOnboarding else { return }
-            self.showWelcome()
-        }
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -85,8 +78,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 guard let self else { return }
                 let status = self.model.extensionManager.status
                 if status != lastStatus {
-                    if status == .active { self.model.extensionBecameActive() }
                     lastStatus = status
+                    // Decide about the setup guide only once the activation
+                    // request has settled, never on a fixed delay.
+                    switch status {
+                    case .active:
+                        self.model.extensionBecameActive()
+                        if !self.model.hasShownWelcome { self.showWelcome() }
+                    case .needsApproval, .notInApplications, .rebootRequired, .failed:
+                        self.showWelcome()
+                    case .unknown, .installing:
+                        break
+                    }
                 }
                 try? await Task.sleep(for: .milliseconds(500))
             }

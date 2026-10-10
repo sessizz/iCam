@@ -42,8 +42,8 @@ final class AppModel {
         framing = PortraitFraming(rawValue: UserDefaults.standard.string(forKey: "framing") ?? "") ?? .fill
     }
 
-    var needsOnboarding: Bool {
-        extensionManager.status != .active || !defaults.bool(forKey: "didShowWelcome")
+    var hasShownWelcome: Bool {
+        defaults.bool(forKey: "didShowWelcome")
     }
 
     func markWelcomeShown() {
@@ -58,7 +58,7 @@ final class AppModel {
 
         if !defaults.bool(forKey: "didConfigureLoginItem") {
             defaults.set(true, forKey: "didConfigureLoginItem")
-            setLaunchAtLogin(true)
+            setLaunchAtLogin(true, userInitiated: false)
         }
 
         extensionManager.activate()
@@ -153,7 +153,7 @@ final class AppModel {
         devices.pipeline.framing = newValue
     }
 
-    func setLaunchAtLogin(_ enabled: Bool) {
+    func setLaunchAtLogin(_ enabled: Bool, userInitiated: Bool = true) {
         do {
             if enabled {
                 try SMAppService.mainApp.register()
@@ -162,6 +162,10 @@ final class AppModel {
             }
         } catch {
             log.error("Login item update failed: \(error.localizedDescription, privacy: .public)")
+        }
+        // Turned off by the user in System Settings: only they can re-enable it.
+        if enabled, userInitiated, SMAppService.mainApp.status == .requiresApproval {
+            SMAppService.openSystemSettingsLoginItems()
         }
         launchAtLogin = SMAppService.mainApp.status == .enabled
     }

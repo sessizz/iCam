@@ -8,8 +8,11 @@
 //   * USB   – fixed port on the loopback interface. The Mac reaches it through
 //             usbmuxd, the same USB tunnel Xcode and Finder use. Needs no
 //             network or Local Network permission at all.
-//   * Wi-Fi – any free port on all interfaces (incl. peer-to-peer Wi-Fi /
-//             AWDL), advertised over Bonjour.
+//   * Wi-Fi – any free port on all interfaces, advertised over Bonjour;
+//             also over peer-to-peer Wi-Fi (AWDL) while no Mac is connected
+//             over the network or USB. AWDL makes the radio leave the
+//             network's channel regularly, which shows up as latency spikes
+//             on the video stream, so it is only on while it may be needed.
 //
 //  Only one Mac is served at a time. A new connection from the *same* Mac
 //  replaces the old one (e.g. Wi-Fi → USB hand-over); another Mac is turned
@@ -62,6 +65,7 @@ final class PeerServer {
     private var livenessTimer: DispatchSourceTimer?
     private var isRunning = false
     private var listenerReady: [TransportKind: Bool] = [:]
+    private var wifiPeerToPeer = true
 
     // MARK: Lifecycle
 
@@ -141,7 +145,7 @@ final class PeerServer {
     private func startWiFiListener() {
         retire(wifiListener)
         let parameters = makeParameters()
-        parameters.includePeerToPeer = true
+        parameters.includePeerToPeer = wifiPeerToPeer
         guard let listener = try? NWListener(using: parameters, on: .any) else {
             emit(.listenerStatus(.wifi, .failed("Cannot create listener")))
             scheduleRestart()
@@ -277,6 +281,24 @@ final class PeerServer {
     private func setActive(_ peer: PeerConnection?) {
         active = peer
         activeForSending.withLockUnchecked { $0 = peer }
+        updatePeerToPeer()
+    }
+
+    /// Advertise over peer-to-peer Wi-Fi only while no Mac is connected, or
+    /// the connected one is reachable only that way. Restarting the listener
+    /// leaves accepted connections alone.
+    private func updatePeerToPeer() {
+        let wanted: Bool
+        if let active {
+            let interface = active.connection.currentPath?.availableInterfaces.first?.name ?? ""
+            wanted = active.transport == .wifi && (interface.hasPrefix("awdl") || interface.hasPrefix("llw"))
+        } else {
+            wanted = true
+        }
+        guard wanted != wifiPeerToPeer else { return }
+        wifiPeerToPeer = wanted
+        log.info("Peer-to-peer Wi-Fi advertising \(wanted ? "on" : "off", privacy: .public)")
+        if isRunning { startWiFiListener() }
     }
 
     private func startLivenessTimer() {

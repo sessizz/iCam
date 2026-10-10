@@ -23,6 +23,8 @@ struct EncodedFrame {
 final class VideoEncoder {
     /// Called on a VideoToolbox thread, in encode order.
     var onEncodedFrame: ((EncodedFrame) -> Void)?
+    /// Called on an encoder thread when VideoToolbox drops a frame.
+    var onDroppedFrame: (() -> Void)?
 
     private let log = Logger(subsystem: "app.icam", category: "encoder")
     private var session: VTCompressionSession?
@@ -90,8 +92,9 @@ final class VideoEncoder {
         let status = VTCompressionSessionEncodeFrame(
             session, imageBuffer: pixelBuffer, presentationTimeStamp: presentationTime,
             duration: frameDuration, frameProperties: properties, infoFlagsOut: nil
-        ) { [weak self] status, _, sampleBuffer in
+        ) { [weak self] status, infoFlags, sampleBuffer in
             guard let self else { return }
+            if infoFlags.contains(.frameDropped) { self.onDroppedFrame?() }
             guard status == noErr, let sampleBuffer else {
                 if status != noErr { self.log.error("Encode callback error \(status)") }
                 return
@@ -155,8 +158,12 @@ final class VideoEncoder {
         set(kVTCompressionPropertyKey_RealTime, kCFBooleanTrue)
         set(kVTCompressionPropertyKey_AllowFrameReordering, kCFBooleanFalse)
         set(kVTCompressionPropertyKey_ExpectedFrameRate, NSNumber(value: ICam.frameRate))
-        set(kVTCompressionPropertyKey_MaxKeyFrameInterval, NSNumber(value: ICam.frameRate * 4))
-        set(kVTCompressionPropertyKey_MaxKeyFrameIntervalDuration, NSNumber(value: 4))
+        // Key frames are 5–15× the size of other frames and hold up every
+        // frame behind them on the link (a visible hitch over Wi-Fi). TCP
+        // loses nothing and the Mac asks for one whenever it needs it, so a
+        // periodic key frame is only a rare safety net.
+        set(kVTCompressionPropertyKey_MaxKeyFrameInterval, NSNumber(value: ICam.frameRate * 30))
+        set(kVTCompressionPropertyKey_MaxKeyFrameIntervalDuration, NSNumber(value: 30))
         if codec == .hevc {
             set(kVTCompressionPropertyKey_ProfileLevel, kVTProfileLevel_HEVC_Main_AutoLevel)
         } else {

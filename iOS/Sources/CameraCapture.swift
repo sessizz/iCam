@@ -15,6 +15,8 @@ protocol CameraCaptureDelegate: AnyObject {
     func cameraCapture(_ capture: CameraCapture, didOutput pixelBuffer: CVPixelBuffer, presentationTime: CMTime)
     /// Called on an arbitrary queue whenever `snapshot()` would change.
     func cameraCaptureStateDidChange(_ capture: CameraCapture)
+    /// Called on `CameraCapture.captureQueue` when the camera drops a frame.
+    func cameraCaptureDidDropFrame(_ capture: CameraCapture)
 }
 
 final class CameraCapture: NSObject {
@@ -420,5 +422,10 @@ extension CameraCapture: AVCaptureVideoDataOutputSampleBufferDelegate {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         delegate?.cameraCapture(self, didOutput: pixelBuffer,
                                 presentationTime: CMSampleBufferGetPresentationTimeStamp(sampleBuffer))
+    }
+
+    func captureOutput(_ output: AVCaptureOutput, didDrop sampleBuffer: CMSampleBuffer,
+                       from connection: AVCaptureConnection) {
+        delegate?.cameraCaptureDidDropFrame(self)
     }
 }

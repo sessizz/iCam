@@ -25,6 +25,7 @@ final class PhoneModel {
     private(set) var stats = PipelineStats()
     /// Frames the congestion control dropped since the last status message.
     @ObservationIgnored private var droppedSinceStatus = 0
+    @ObservationIgnored private var sourceDroppedSinceStatus = 0
     private(set) var cameraAuthorization = AVCaptureDevice.authorizationStatus(for: .video)
     var isDimmed = false
     private(set) var deviceName: String = DeviceIdentity.deviceName
@@ -73,6 +74,7 @@ final class PhoneModel {
             DispatchQueue.main.async {
                 self?.stats = stats
                 self?.droppedSinceStatus += stats.droppedFrames
+                self?.sourceDroppedSinceStatus += stats.sourceDroppedFrames
             }
         }
 
@@ -267,7 +269,8 @@ final class PhoneModel {
             bitrate: pipeline.currentBitrate,
             roundTripMs: isStreaming ? Int(stats.latencyMs.rounded()) : nil,
             queueDelayMs: isStreaming ? Int(stats.queueDelayMs.rounded()) : nil,
-            droppedFrames: isStreaming ? droppedSinceStatus : nil)
+            droppedFrames: isStreaming ? droppedSinceStatus : nil,
+            sourceDroppedFrames: isStreaming ? sourceDroppedSinceStatus : nil)
     }
 
     private func sendStatus(force: Bool = false) {
@@ -276,6 +279,7 @@ final class PhoneModel {
         guard force || status != lastSentStatus else { return }
         lastSentStatus = status
         droppedSinceStatus = 0
+        sourceDroppedSinceStatus = 0
         server.send(.status(status))
     }
 }

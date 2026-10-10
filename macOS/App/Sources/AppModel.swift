@@ -332,6 +332,9 @@ final class AppModel {
             if let rtt = status.roundTripMs { link += ", frame round trip \(rtt) ms" }
             if let queue = status.queueDelayMs { link += ", queueing \(queue) ms" }
             if let dropped = status.droppedFrames { link += ", dropped \(dropped) frame(s) in ~5 s" }
+            if let dropped = status.sourceDroppedFrames, dropped > 0 {
+                link += " (+\(dropped) by camera/encoder)"
+            }
             lines.append(link)
         }
         lines.append(String(format: "From iPhone: %.0f fps, %.1f Mbps, %.0f ms RTT, playout buffer %.0f ms",

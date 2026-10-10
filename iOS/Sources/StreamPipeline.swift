@@ -35,6 +35,8 @@ struct PipelineStats: Equatable {
     var queueDelayMs: Double = 0
     /// Camera frames dropped before encoding in the last second.
     var droppedFrames = 0
+    /// Frames the camera or the encoder dropped themselves in the last second.
+    var sourceDroppedFrames = 0
 }
 
 final class StreamPipeline: CameraCaptureDelegate {
@@ -93,6 +95,7 @@ final class StreamPipeline: CameraCaptureDelegate {
         var framesSent = 0
         var bytesSent = 0
         var framesDropped = 0
+        var sourceFramesDropped = 0
         var rttSamples: [CFTimeInterval] = []
         var congestedWindows = 0
         var lastBitrateDecrease: CFTimeInterval = 0
@@ -104,6 +107,9 @@ final class StreamPipeline: CameraCaptureDelegate {
         camera.delegate = self
         encoder.onEncodedFrame = { [weak self] frame in
             self?.deliver(frame)
+        }
+        encoder.onDroppedFrame = { [weak self] in
+            self?.state.withLock { $0.sourceFramesDropped += 1 }
         }
     }
 
@@ -128,6 +134,7 @@ final class StreamPipeline: CameraCaptureDelegate {
                 $0.framesSent = 0
                 $0.bytesSent = 0
                 $0.framesDropped = 0
+                $0.sourceFramesDropped = 0
                 $0.rttSamples.removeAll()
                 $0.congestedWindows = 0
                 $0.lastBitrateDecrease = now
@@ -188,6 +195,10 @@ final class StreamPipeline: CameraCaptureDelegate {
             encoder.encode(pixelBuffer, presentationTime: presentationTime)
         }
         evaluateWindow(now: now)
+    }
+
+    func cameraCaptureDidDropFrame(_ capture: CameraCapture) {
+        state.withLock { $0.sourceFramesDropped += 1 }
     }
 
     func cameraCaptureStateDidChange(_ capture: CameraCapture) {
@@ -276,11 +287,13 @@ final class StreamPipeline: CameraCaptureDelegate {
                 targetBitrate: s.targetBitrate,
                 latencyMs: (median ?? 0) * 1000,
                 queueDelayMs: delay * 1000,
-                droppedFrames: s.framesDropped)
+                droppedFrames: s.framesDropped,
+                sourceDroppedFrames: s.sourceFramesDropped)
             s.windowStart = now
             s.framesSent = 0
             s.bytesSent = 0
             s.framesDropped = 0
+            s.sourceFramesDropped = 0
             s.rttSamples.removeAll(keepingCapacity: true)
             return (stats, newBitrate)
         }

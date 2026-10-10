@@ -157,6 +157,8 @@ struct PhoneStatus: Codable, Equatable {
     var roundTripMs: Int? = nil
     var queueDelayMs: Int? = nil
     var droppedFrames: Int? = nil
+    /// Frames the camera or encoder dropped themselves since the previous status.
+    var sourceDroppedFrames: Int? = nil
 }
 
 struct PingMessage: Codable {

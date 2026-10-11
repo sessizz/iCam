@@ -52,7 +52,9 @@ mkdir -p "$DERIVED"
 extension_fingerprint() {
   {
     echo "$TEAM"
-    find macOS/CameraExtension macOS/Shared Config iCam.xcodeproj/project.pbxproj \
+    # The project file itself changes whenever any target gains a file, so
+    # use the generator it is made from (its extension target settings).
+    find macOS/CameraExtension macOS/Shared Config tools/gen_xcodeproj.py \
       -type f ! -name '.*' -print0 | sort -z | xargs -0 shasum -a 256
   } | shasum -a 256 | cut -c1-16
 }

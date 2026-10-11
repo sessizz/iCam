@@ -84,6 +84,10 @@
 			isa = PBXBuildFile;
 			fileRef = 5D8350C8804B047E27CD82F3 /* InfoPlist.xcstrings */;
 		};
+		6BA4BA9C0AE8D85C27877C01 /* RateController.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = C880E7D1D9FC92012DB3AAB0 /* RateController.swift */;
+		};
 		774DA7CDC1C1CC1976327F76 /* USBMux.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = 5ABB4502162E48E283F0AB05 /* USBMux.swift */;
@@ -127,6 +131,10 @@
 		B76A71C57A3FF86019CBD2C9 /* VideoEncoder.swift in Sources */ = {
 			isa = PBXBuildFile;
 			fileRef = E370841F6741880848A961EE /* VideoEncoder.swift */;
+		};
+		BCB2A434E1C6FC58B11EF5F8 /* RateController.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = C880E7D1D9FC92012DB3AAB0 /* RateController.swift */;
 		};
 		C236FBB536E92483DB00B12C /* ICamApp.swift in Sources */ = {
 			isa = PBXBuildFile;
@@ -384,6 +392,12 @@
 			includeInIndex = 0;
 			path = com.example.icam.mac.CameraExtension.systemextension;
 			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		C880E7D1D9FC92012DB3AAB0 /* RateController.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = RateController.swift;
+			sourceTree = "<group>";
 		};
 		C91641753783B9DA9C21B833 /* VirtualCameraConstants.swift */ = {
 			isa = PBXFileReference;
@@ -659,6 +673,7 @@
 			children = (
 				D612935D1119C0599903FD6B /* ICamProtocol.swift */,
 				7A34540D4E92C9417C17D181 /* MessageFraming.swift */,
+				C880E7D1D9FC92012DB3AAB0 /* RateController.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -826,6 +841,7 @@
 			files = (
 				805C9313E5D3506D13D0ADD7 /* ICamProtocol.swift in Sources */,
 				ABED8C0521B7821D37C65CA6 /* MessageFraming.swift in Sources */,
+				6BA4BA9C0AE8D85C27877C01 /* RateController.swift in Sources */,
 				43C91B1608BE985204CFB15A /* VirtualCameraConstants.swift in Sources */,
 				57B9F32135EA8DA393398EE4 /* AppModel.swift in Sources */,
 				163C642B3D2052627E0889AB /* CameraProbe.swift in Sources */,
@@ -852,6 +868,7 @@
 			files = (
 				1C44373C5376EB45CC9397B9 /* ICamProtocol.swift in Sources */,
 				9DD3311E05D6C5C41D2A88A9 /* MessageFraming.swift in Sources */,
+				BCB2A434E1C6FC58B11EF5F8 /* RateController.swift in Sources */,
 				2DD64A773F95D186B9F6F43D /* CameraCapture.swift in Sources */,
 				E20D993B9FCF335E6CB84908 /* CameraPreview.swift in Sources */,
 				A7280A337D4C77A4677EA5E6 /* ContentView.swift in Sources */,

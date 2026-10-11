@@ -103,7 +103,7 @@ En iyi sonuç için iPhone'u **yatay** ve **arka kamera** Mac'e (size) bakacak �
 | Kamera uygulamalarda görünmüyor | Uzantının onaylandığını kontrol edin; kamera uygulamasını yeniden başlatın. `systemextensionsctl list` ile durumu görebilirsiniz. |
 | “iPhone bulunamadı” (USB) | iPhone'da iCam açık mı? Kabloyu takıp “Güven”e dokundunuz mu? Finder'da iPhone görünüyor mu? |
 | “iPhone bulunamadı” (Wi-Fi) | iPhone ve Mac'te Yerel Ağ izinlerini kontrol edin (Ayarlar › Gizlilik › Yerel Ağ). |
-| Görüntü takılıyor (Wi-Fi) | iCam bit hızını otomatik düşürür; yine de en iyi deneyim için USB kullanın veya 5 GHz ağa geçin. |
+| Görüntü takılıyor (Wi-Fi) | iCam kısa Wi-Fi takılmalarını yumuşatır ve bit hızını yalnızca bağlantı gerçekten yetişemediğinde düşürür. Takılma sürüyorsa Tanılama’daki *iPhone link* satırına bakın; en iyi deneyim için USB kullanın veya 5 GHz ağa geçin. |
 | Uzantıyı değiştirdim ama eski sürüm çalışıyor | macOS uzantıyı yalnızca sürüm numarası değişince yeniler. `./scripts/install-mac.sh` uzantının kaynakları değiştiğinde ona yeni numara verir; Xcode'dan derliyorsanız `CURRENT_PROJECT_VERSION`'ı artırın. Açık olan video uygulamalarını yeniden başlatın. |
 | Kamera görünüyor ama görüntü yok | Menüde **Gelişmiş › Tanılama** bölümünü açın; her adımın durumunu gösterir. “Tanılamayı Kopyala” ile metni paylaşın. |
 | “Cannot start the virtual camera input (…)” | Tanılamadaki *Camera streams*, *Extension reports* ve *Input attempt* satırları hangi akışın denendiğini ve uzantının istemciyi kabul edip etmediğini gösterir. *Extension reports*'taki `build` numarası *Extension* satırındaki *bundled build* ile aynı değilse eski uzantı çalışıyordur. |
@@ -163,6 +163,10 @@ tools/                    Xcode projesi, ikon ve yerelleştirme üreteçleri
 swiftc -parse-as-library Shared/ICamProtocol.swift Shared/MessageFraming.swift \
   Tests/ProtocolTests.swift -o /tmp/protocol-tests && /tmp/protocol-tests
 
+# iPhone'un bit hızı denetimi, bağlantı simülasyonuyla (iyi/kötü Wi-Fi, yavaş bağlantı, kopma, USB) — her platformda
+swiftc -parse-as-library Shared/ICamProtocol.swift Shared/RateController.swift \
+  Tests/RateControlTests.swift -o /tmp/rate-tests && /tmp/rate-tests
+
 # Uçtan uca video zinciri (macOS): iPhone kodlayıcısı → kablo → Mac çözücüsü → 1080p uydurma
 swiftc -parse-as-library Shared/*.swift macOS/Shared/*.swift iOS/Sources/VideoEncoder.swift \
   macOS/App/Sources/VideoDecoder.swift macOS/App/Sources/VideoPipeline.swift \
@@ -170,4 +174,4 @@ swiftc -parse-as-library Shared/*.swift macOS/Shared/*.swift iOS/Sources/VideoEn
   Tests/PipelineTests.swift -o /tmp/pipeline-tests && /tmp/pipeline-tests
 ```
 
-Her push'ta GitHub Actions iPhone ve Mac hedeflerini derler ve bu iki test paketini çalıştırır.
+Her push'ta GitHub Actions iPhone ve Mac hedeflerini derler ve bu üç test paketini çalıştırır.

@@ -5,23 +5,14 @@
 //  Camera → encoder → network, with end-to-end congestion control.
 //
 //  The Mac acknowledges every frame after decoding it, which gives a round
-//  trip time per frame. The controller is delay based:
+//  trip and a delivered byte count per frame. RateController (Shared/) turns
+//  them into the encoder's bitrate once per second; see there for the policy.
 //
-//   * The lowest recent round trip is the link's baseline; how far the
-//     typical (median) round trip sits above it is the queueing delay.
-//     Only a queue that keeps building means the stream is faster than the
-//     link: then the bitrate goes down, to just below what the link
-//     actually delivered. A clean link raises it again, but only while the
-//     stream really uses the current rate: a quiet scene encodes far below
-//     the target and proves nothing about the link.
-//   * Wi-Fi delivers in bursts (power saving, retransmissions, other
-//     traffic). Hiccups of 100–300 ms are normal there and are *not*
-//     congestion, so they never drop frames by themselves; the Mac smooths
-//     them out with a small playout buffer.
-//   * Only when the oldest unacknowledged frame has waited far too long is
-//     the link really stuck: new camera frames are then dropped *before*
-//     encoding. The encoder never sees a dropped frame, so the reference
-//     chain stays intact and no key frame is needed to recover.
+//  Wi-Fi hiccups never drop frames by themselves (the Mac smooths them out
+//  with a small playout buffer). Only when the oldest unacknowledged frame
+//  has waited far too long is the link really stuck: new camera frames are
+//  then dropped *before* encoding. The encoder never sees a dropped frame,
+//  so the reference chain stays intact and no key frame is needed.
 //
 
 import AVFoundation
@@ -57,28 +48,6 @@ final class StreamPipeline: CameraCaptureDelegate {
     private let encoder = VideoEncoder()
     private let minBitrate = 1_500_000
 
-    /// How the controller treats a link.
-    struct LinkPolicy: Equatable {
-        /// Frames are dropped before encoding once the oldest unacknowledged
-        /// frame has waited this long (the link is stuck, not just bursty).
-        var maxQueueDelay: CFTimeInterval
-        /// Hard cap on frames in flight.
-        var maxFramesInFlight: Int
-        /// Median queueing delay that counts as a building queue.
-        var congestedDelay: CFTimeInterval
-        /// Median queueing delay below which the bitrate may rise.
-        var clearDelay: CFTimeInterval
-
-        static let usb = LinkPolicy(maxQueueDelay: 0.25, maxFramesInFlight: 8,
-                                    congestedDelay: 0.05, clearDelay: 0.02)
-        static let wifi = LinkPolicy(maxQueueDelay: 0.6, maxFramesInFlight: 20,
-                                     congestedDelay: 0.12, clearDelay: 0.045)
-
-        static func `for`(_ transport: TransportKind) -> LinkPolicy {
-            transport == .usb ? .usb : .wifi
-        }
-    }
-
     private struct InFlightFrame {
         let sequence: UInt32
         let sentAt: CFTimeInterval
@@ -88,12 +57,9 @@ final class StreamPipeline: CameraCaptureDelegate {
     private struct State {
         var isStreaming = false
         var config: StreamConfig?
-        var policy = LinkPolicy.wifi
-        var targetBitrate = 0
+        var controller = RateController(policy: .wifi, startBitrate: 0, minBitrate: 0, frameRate: 30, now: 0)
         /// Sent but not yet acknowledged, oldest first.
         var inFlight: [InFlightFrame] = []
-        /// Per-second minimum round trips of the last 10 seconds.
-        var recentMinimumRTTs: [CFTimeInterval] = []
         // One-second statistics window.
         var windowStart: CFTimeInterval = 0
         var framesSent = 0
@@ -102,9 +68,6 @@ final class StreamPipeline: CameraCaptureDelegate {
         var framesDropped = 0
         var sourceFramesDropped = 0
         var rttSamples: [CFTimeInterval] = []
-        var congestedWindows = 0
-        var lastBitrateDecrease: CFTimeInterval = 0
-        var lastBitrateIncrease: CFTimeInterval = 0
     }
 
     private let state = OSAllocatedUnfairLock(initialState: State())
@@ -125,17 +88,16 @@ final class StreamPipeline: CameraCaptureDelegate {
 
     func start(config: StreamConfig, settings: CameraSettings, transport: TransportKind) {
         let now = CACurrentMediaTime()
-        let policy = LinkPolicy.for(transport)
+        let controller = RateController(policy: .for(transport), startBitrate: config.bitrate,
+                                        minBitrate: minBitrate, frameRate: Double(ICam.frameRate), now: now)
         camera.captureQueue.async {
             self.encoder.configure(codec: config.codec, bitrate: config.bitrate)
             self.state.withLock {
                 $0.isStreaming = true
                 $0.config = config
-                $0.policy = policy
-                $0.targetBitrate = config.bitrate
+                $0.controller = controller
                 // Anything still in flight belongs to a previous stream.
                 $0.inFlight.removeAll()
-                $0.recentMinimumRTTs.removeAll()
                 $0.windowStart = now
                 $0.framesSent = 0
                 $0.bytesSent = 0
@@ -143,9 +105,6 @@ final class StreamPipeline: CameraCaptureDelegate {
                 $0.framesDropped = 0
                 $0.sourceFramesDropped = 0
                 $0.rttSamples.removeAll()
-                $0.congestedWindows = 0
-                $0.lastBitrateDecrease = now
-                $0.lastBitrateIncrease = now
             }
         }
         camera.start(settings: settings)
@@ -193,8 +152,9 @@ final class StreamPipeline: CameraCaptureDelegate {
         let now = CACurrentMediaTime()
         let shouldEncode = state.withLock { s -> Bool in
             guard s.isStreaming else { return false }
-            let stuck = s.inFlight.first.map { now - $0.sentAt > s.policy.maxQueueDelay } ?? false
-            if stuck || s.inFlight.count >= s.policy.maxFramesInFlight {
+            let policy = s.controller.policy
+            let stuck = s.inFlight.first.map { now - $0.sentAt > policy.maxQueueDelay } ?? false
+            if stuck || s.inFlight.count >= policy.maxFramesInFlight {
                 s.framesDropped += 1
                 return false
             }
@@ -247,73 +207,24 @@ final class StreamPipeline: CameraCaptureDelegate {
             }
             let ceiling = max(minBitrate, Int(Double(config.maxBitrate) * thermalFactor))
 
-            // Round trips of this window: median = typical, minimum feeds the
-            // baseline (lowest of the last 10 s; it follows slow drift).
-            let samples = s.rttSamples.sorted()
-            let median = samples.isEmpty ? nil : samples[samples.count / 2]
-            if let fastest = samples.first {
-                s.recentMinimumRTTs.append(fastest)
-                if s.recentMinimumRTTs.count > 10 { s.recentMinimumRTTs.removeFirst() }
-            }
-            let baseline = s.recentMinimumRTTs.min()
-            let queueDelay = median.flatMap { median in baseline.map { max(0, median - $0) } } ?? 0
-            // Frames still waiting count too: an ack that never comes is the
-            // strongest congestion signal.
+            let previous = s.controller.targetBitrate
+            let evaluation = s.controller.evaluate(
+                RateController.Window(elapsed: elapsed, bytesSent: s.bytesSent, framesSent: s.framesSent,
+                                      bytesAcked: s.bytesAcked, roundTrips: s.rttSamples,
+                                      framesDropped: s.framesDropped),
+                ceiling: ceiling, now: now)
+            let target = s.controller.targetBitrate
+            let newBitrate: Int? = target != previous ? target : nil
             let oldestWait = s.inFlight.first.map { now - $0.sentAt } ?? 0
-            let delay = max(queueDelay, oldestWait > s.policy.congestedDelay * 2 ? oldestWait : 0)
-
-            let sentRate = Double(s.bytesSent * 8) / elapsed
-            let deliveredRate = Double(s.bytesAcked * 8) / elapsed
-            var target = s.targetBitrate
-            if s.framesDropped > 0 {
-                // The link was stuck: back off firmly, once per episode.
-                // Frames stay dropped until the backlog is acknowledged, so
-                // one stall can span two windows; a second cut right away
-                // would act on no new information.
-                if now - s.lastBitrateDecrease > 1.5 {
-                    target = max(minBitrate, Int(Double(target) * 0.7))
-                    s.lastBitrateDecrease = now
-                }
-                s.congestedWindows = 0
-            } else if delay > s.policy.congestedDelay {
-                // A queue is building. Act on the second such window, or at
-                // once when it is already long.
-                s.congestedWindows += 1
-                if s.congestedWindows >= 2 || delay > s.policy.congestedDelay * 2,
-                   now - s.lastBitrateDecrease > 1 {
-                    // Land just below what the link delivered in one step,
-                    // but never cut more than 40% at once (a hiccup during a
-                    // quiet scene delivers little without meaning much).
-                    let cut = max(Double(target) * 0.6, min(Double(target) * 0.85, deliveredRate * 0.9))
-                    target = max(minBitrate, Int(cut))
-                    s.lastBitrateDecrease = now
-                    s.congestedWindows = 0
-                }
-            } else if delay < s.policy.clearDelay {
-                s.congestedWindows = 0
-                // Probe upwards only while the stream uses most of the
-                // target, and give each step time to show its effect.
-                if sentRate >= 0.7 * Double(target), target < ceiling,
-                   now - s.lastBitrateDecrease > 2, now - s.lastBitrateIncrease >= 2 {
-                    target = min(ceiling, Int(Double(target) * 1.1) + 200_000)
-                    s.lastBitrateIncrease = now
-                }
-            }
-            target = min(target, ceiling)
-            var newBitrate: Int?
-            if target != s.targetBitrate {
-                s.targetBitrate = target
-                newBitrate = target
-            }
 
             let stats = PipelineStats(
                 fps: Double(s.framesSent) / elapsed,
                 bitrate: Int(Double(s.bytesSent * 8) / elapsed),
-                targetBitrate: s.targetBitrate,
+                targetBitrate: target,
                 // No ack this window (a stall): the oldest frame's wait is a
                 // lower bound on the round trip.
-                latencyMs: (median ?? oldestWait) * 1000,
-                queueDelayMs: delay * 1000,
+                latencyMs: (evaluation.medianRoundTrip ?? oldestWait) * 1000,
+                queueDelayMs: evaluation.queueDelay * 1000,
                 droppedFrames: s.framesDropped,
                 sourceDroppedFrames: s.sourceFramesDropped)
             s.windowStart = now
@@ -333,5 +244,5 @@ final class StreamPipeline: CameraCaptureDelegate {
         onStats?(result.stats)
     }
 
-    var currentBitrate: Int { state.withLock { $0.targetBitrate } }
+    var currentBitrate: Int { state.withLock { $0.controller.targetBitrate } }
 }

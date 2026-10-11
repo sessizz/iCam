@@ -53,7 +53,7 @@ jobs:
       - name: Run
         run: swiftc -parse-as-library -O Shared/ICamProtocol.swift Shared/MessageFraming.swift Tests/ProtocolTests.swift -o protocol-tests && ./protocol-tests
       - name: Rate control (link simulation)
-        run: swiftc -parse-as-library -O Shared/ICamProtocol.swift Shared/RateController.swift Tests/RateControlTests.swift -o rate-tests && ./rate-tests
+        run: swiftc -parse-as-library -O Shared/ICamProtocol.swift Shared/MessageFraming.swift Shared/RateController.swift Tests/RateControlTests.swift -o rate-tests && ./rate-tests
 
   pipeline-tests:
     name: Video pipeline tests

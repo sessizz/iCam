@@ -16,7 +16,7 @@
 //  capacity collapses, one long stall, and USB.
 //
 //  Run (any platform):
-//    swiftc -parse-as-library Shared/ICamProtocol.swift Shared/RateController.swift \
+//    swiftc -parse-as-library Shared/ICamProtocol.swift Shared/MessageFraming.swift Shared/RateController.swift \
 //      Tests/RateControlTests.swift -o /tmp/rate-tests && /tmp/rate-tests
 //
 

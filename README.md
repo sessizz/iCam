@@ -164,7 +164,7 @@ swiftc -parse-as-library Shared/ICamProtocol.swift Shared/MessageFraming.swift \
   Tests/ProtocolTests.swift -o /tmp/protocol-tests && /tmp/protocol-tests
 
 # iPhone'un bit hızı denetimi, bağlantı simülasyonuyla (iyi/kötü Wi-Fi, yavaş bağlantı, kopma, USB) — her platformda
-swiftc -parse-as-library Shared/ICamProtocol.swift Shared/RateController.swift \
+swiftc -parse-as-library Shared/ICamProtocol.swift Shared/MessageFraming.swift Shared/RateController.swift \
   Tests/RateControlTests.swift -o /tmp/rate-tests && /tmp/rate-tests
 
 # Uçtan uca video zinciri (macOS): iPhone kodlayıcısı → kablo → Mac çözücüsü → 1080p uydurma
